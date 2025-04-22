@@ -19,6 +19,8 @@ public class AnimeProfile {
     public String startDateString = "";
     public String endDateString = "";
 
+    public ArrayList<String> lists;
+
     public void addAnime(AnimeLog anime) {
 
         animes.add(anime);
@@ -52,23 +54,50 @@ public class AnimeProfile {
     public AnimeProfile() {
         profileValues = new HashMap<>();
         animes = new ArrayList<>();
+        lists = new ArrayList<>();
     }
     public AnimeProfile(String... values) {
         profileValues = new HashMap<>();
+        lists = new ArrayList<>();
         animes = new ArrayList<>();
     }
 
+    public void setProfileValueXML(String key, String value) {
+        setProfileValue(key,getSingluarValue(value,key));
+
+    }//to use when parsing xml
+
     public void setProfileValue(String key, String value) {
-        profileValues.put(key,getSingluarValue(value,key));
+        if (key.contains("user_total_") && !lists.contains(value)) {
+            lists.add(value);
+
+        }
+          profileValues.put(key, value);
     }
 
+
+
+
+    public void addProfileValue(String key, String value) {
+        if (key.contains("user_total_") && !lists.contains(value)) {
+            lists.add(value);
+            System.out.println(value);
+        }
+        profileValues.put(key,
+                (Integer.parseInt(profileValues.getOrDefault(key
+                        ,"0"
+                ))+1)+"");
+
+
+    }
+
+
     public String getTitleCard() {
-        String output = profileValues.get("user_name") + "   watching:"
-                + profileValues.get("user_total_watching")
-                + "   completed:" + profileValues.get("user_total_completed")
-                + "   dropped:" + profileValues.get("user_total_dropped")
-            + "   on hold:" + profileValues.get("user_total_onhold")
-           + "   planning:" + profileValues.get("user_total_plantowatch");
+        String output = profileValues.get("user_name") ;
+
+        for (String s : lists) {
+            output = output + ", " + s + ":"+profileValues.get("user_total_"+s);
+        }
       //  for (String s :profileValues.keySet()) {
        //     output = output + s + ":" + profileValues.get(s) + " ";
        // }
