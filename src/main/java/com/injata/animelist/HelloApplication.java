@@ -1,49 +1,54 @@
 package com.injata.animelist;
 
-import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonArrayFormatVisitor;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.fxml.FXMLLoader;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.paint.Paint;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontPosture;
 import javafx.scene.text.FontWeight;
-import javafx.stage.DirectoryChooser;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import netscape.javascript.JSObject;
 
-import com.fasterxml.jackson.annotation.JsonTypeName;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
-
+import java.awt.Robot;
+import java.awt.GraphicsDevice;
+import java.awt.GraphicsConfiguration;
+import java.awt.Rectangle;
+import java.awt.AWTException;
+import java.awt.Cursor;
+import java.awt.GraphicsEnvironment;
+import java.awt.Point;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import java.nio.channels.ConnectionPendingException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
+
 
 public class HelloApplication extends Application {
 
 
+    public static boolean imageChanged = false;
 
     public static String directory = "";
 
@@ -61,35 +66,107 @@ public class HelloApplication extends Application {
 
     public static boolean initialise_zoom = false;
 
-    public static double minZoom = 3;
+    public static long launchTime;
 
+    public static double minZoom = 20;
 
-    public static double minZoomImage = 1.5;
+    public static boolean shouldUpdateFrame = true;
 
-    public static long min_interval_load_image = 100;//need to do the same but for querying the api in general as well. however, that would be with the config saving the last query, so we dont question more than every 2 minutes
-    public static long lastImageLoad = 0;
 
 
     //for xml formatting, use https://malscraper.azurewebsites.net/ and select anilist list type and enter your username.
 
-    public static AnimeProfile profile;
+
+
+    //potential idea: make it a generalised approach for the display, with a class type of things which are drawn in a list, instead of manually drawing the same lines each time.
+    //this way i can simply switch out the elements being drawn to the canvas instead of using a whole different method on the display
+
+
+
+    public static ArrayList<MenuElement> currentMenu;
+
+    private static Stage mainStage;
+
+    public static HashMap<String, String> textPool = new HashMap<>();
+
+    public static MenuElement focusedItem;
+
     @Override
     public void start(Stage stage) throws IOException {
+
+        launchTime = System.currentTimeMillis();
      //   GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
       //  CANVAS_WIDTH= Toolkit.getDefaultToolkit().getScreenSize().width;
         //CANVAS_HEIGHT= Toolkit.getDefaultToolkit().getScreenSize().height;
      //   System.out.println( Toolkit.getDefaultToolkit().getScreenSize().width);
+
+        mainStage = stage;
+
+        getDisplay(mainStage);
+
+        mainStage.show();
+        Thread thread = new Thread(new Runnable() {
+            public void run() {
+                while (shouldUpdateFrame) {
+                    try {
+                        Thread.sleep(1000);
+                        displayTimeline();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+
+            }
+        });
+
+        thread.start();
+
+    /*    stage.setOnCloseRequest(windowEvent -> {
+            stage.close();
+            errorInfo.setText("");
+            getConfig();
+
+            getDisplay(stage);
+            stage.show();
+        });
+        
+     */
+
+
+
+
+
+    }
+
+    private static void updateTextPool(boolean updateGraphics,String key, String text) {
+        textPool.put(key,text);
+
+        System.out.println("updated "+key + " to be: " + text);
+        if (updateGraphics) {
+          displayTimeline();
+        }
+    }
+
+    private static void getDisplay(Stage stage) {
+     //   currentMenu = Menus.getTimelineMenu();
+        currentMenu = Menus.getFirstMenu();
+
         HBox pane = new HBox();
 
-     //   System.out.println(queryAnilistAPI());
+        //   System.out.println(queryAnilistAPI());
 
         canvas = new Canvas(CANVAS_WIDTH,CANVAS_HEIGHT);
+
+
+
+
 
         stage.widthProperty().addListener(new ChangeListener<Number>() {
             @Override public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneWidth, Number newSceneWidth) {
                 CANVAS_WIDTH = newSceneWidth.intValue();
                 canvas.setWidth(CANVAS_WIDTH);
-                displayTimeline(profile);
+                displayTimeline();
             }
         });
 
@@ -98,7 +175,7 @@ public class HelloApplication extends Application {
                 CANVAS_HEIGHT = newSceneHeight.intValue();
                 System.out.println("set canvas height to " + CANVAS_HEIGHT);
                 canvas.setHeight(CANVAS_HEIGHT);
-                displayTimeline(profile);
+                displayTimeline();
             }
         });
         pane.setSpacing(0);
@@ -113,28 +190,45 @@ public class HelloApplication extends Application {
 
         stage.setTitle("Anime list");
         Scene scene = new Scene(pane, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-        stage.setScene(scene);
-        if ( choose_file) {
-            if (directory.isEmpty()) {
-                userChooseDir(stage);
-
+        scene.setOnKeyPressed(keyEvent -> {
+            if (keyEvent.getCode() == KeyCode.F11) {
+                stage.setFullScreen(!stage.isFullScreen());
+            } else if (keyEvent.getCode() == KeyCode.ESCAPE) {
+                stage.setFullScreen(false);
             }
 
-            profile = getAnimeProfileXML(stringAnilistFile(directory));
-        } else {
-          //  profile =getAnimeProfileJson(queryAnilistAPI("Injata"),"Injata");
-            profile = getAnimeProfileJson(stringAnilistFile("Injata_list.txt"), "Injata");
-        }
+            focusedItem.interactElement(keyEvent.getCode()+"",false,0,0,0);
+            displayTimeline();
+        });
+        scene.setOnKeyReleased(keyEvent -> {
+
+            focusedItem.interactElement(keyEvent.getCode()+"",true,0,0,0);
+            displayTimeline();
+        });
+
+        stage.setScene(scene);
+
+
+
+
+
+
+
         stage.show();
 
 
 
-        profile.orderList("finish", true);
 
 
         //System.out.println(profile.getDisplayString());
-        displayTimeline(profile);
+        displayTimeline();
+
+
+        canvas.setOnMouseClicked(mouseEvent -> {
+            interactMenu(true,mouseEvent.getX(),mouseEvent.getY());
+            displayTimeline();
+        });
+        canvas.getGraphicsContext2D().setImageSmoothing(true);
         canvas.setOnMousePressed(dragEvent -> {
             dragX = dragEvent.getX();
             dragY = dragEvent.getY();
@@ -144,11 +238,19 @@ public class HelloApplication extends Application {
         });
         canvas.setOnMouseDragged(dragEvent -> {
 
+
+
             x = dragXB-(dragX-dragEvent.getX())/zoomScale;
             y = dragYB-(dragY-dragEvent.getY())/zoomScale;
-           // x = Math.min(100,x);
-           // y = Math.min(100,y);
-            displayTimeline(profile);
+            interactMenu(false,dragEvent.getX(),dragEvent.getY());
+         //   if (dragEvent.getX() < 0) {
+         //       moveMouse(new Point((int)CANVAS_WIDTH,(int)dragEvent.getY()));
+//
+          //
+            //   }
+            // x = Math.min(100,x);
+            // y = Math.min(100,y);
+            displayTimeline();
         });
 
         canvas.setOnMouseReleased(dragEvent -> {
@@ -157,24 +259,147 @@ public class HelloApplication extends Application {
 
 
         });
-        canvas.setOnScroll(scrollEvent -> {
-            zoomScale=Math.min(zoomScale*(scrollEvent.getDeltaY() > 0 ? 1.1 : 0.9),minZoom);
-            displayTimeline(profile);
+        canvas.setOnScrollStarted(scrollEvent -> {
+            //       double zoomFactor = scrollEvent.getDeltaY() > 0 ? 1.1 : 0.9;
+            //    zoomScale=Math.min(zoomScale*zoomFactor,minZoom);
+            //    displayTimeline(profile);
+
+            System.out.println("scroll started");
         });
+        canvas.setOnScrollFinished(scrollEvent -> {
+            //       double zoomFactor = scrollEvent.getDeltaY() > 0 ? 1.1 : 0.9;
+            //    zoomScale=Math.min(zoomScale*zoomFactor,minZoom);
+            //    displayTimeline(profile);
+
+            System.out.println("scroll ended");
+        });
+
+        canvas.setOnScroll(scrollEvent -> {
+            //      x -=scrollEvent.getX();
+            //    y -=scrollEvent.getY();
+
+            //  canvas.getGraphicsContext2D().setImageSmoothing(true);
+
+            double zoomFactor = scrollEvent.getDeltaY() > 0 ? 1.1 : 0.9;
+            double distanceToCenterBeforeX = scrollEvent.getX();
+            double distanceToCenterBeforeY = scrollEvent.getY();
+
+            double distanceNowX = distanceToCenterBeforeX * zoomFactor;
+            double distanceNowY = distanceToCenterBeforeY * zoomFactor;
+            double xdiff = distanceNowX - distanceToCenterBeforeX;
+            double ydiff = distanceNowY - distanceToCenterBeforeY;
+
+
+
+            if (minZoom < zoomScale*zoomFactor) {
+                zoomScale=minZoom;
+            } else {
+                x -= (xdiff / zoomScale) / zoomFactor;
+                y -= (ydiff / zoomScale) / zoomFactor;
+                zoomScale=zoomScale*zoomFactor;
+            }
+
+
+            displayTimeline();
+        });
+
+        canvas.setOnMouseMoved( mouseEvent -> {
+            boolean update = interactMenu(false,mouseEvent.getX(),mouseEvent.getY());
+        //    if (dragEvent.getX() < 0) {
+          //      moveMouse(new Point((int)CANVAS_WIDTH,(int)dragEvent.getY()));
+
+         //   }
+            // x = Math.min(100,x);
+            // y = Math.min(100,y);
+            if (update) {
+                displayTimeline();
+
+            }
+        });
+
+
 //        displayScoreDistribution(profile);
         stage.setMaximized(true);
+
+
+
     }
 
-    private static double zoomScale = 1.0;
 
-    private static double x = 0;
+
+
+
+    public static void drawMenu() {
+        for (MenuElement element : currentMenu) {
+            element.drawElement(canvas.getGraphicsContext2D(),zoomScale,x*zoomScale,y*zoomScale);
+
+       //     System.out.println("should have drawn " + element.getInfo());
+        }
+    }
+
+    public static boolean interactMenu(boolean click,double x, double y) {
+        boolean shouldUpdate = false;
+        for (MenuElement element : currentMenu) {
+
+            shouldUpdate = element.interactElement("",click,zoomScale,x,y);
+       //     System.out.println("should have drawn " + element.getInfo());
+        }
+        return shouldUpdate;
+    }
+
+    public static void actionButton(String action, MenuElement element) {
+        System.out.println(action);
+        String command = action.split(":")[0];
+        switch (command) {
+            case "back" ->{
+                currentMenu = Menus.getFirstMenu();
+           //    getDisplay(mainStage);
+            }
+            case "timeline" ->{
+                updateTextPool(true,"Error", "fetching Anilist profile");
+
+                Thread thread = new Thread(new Runnable() {
+                    public void run() {
+                        MenuAnimeTimeline timeline= new MenuAnimeTimeline(0,0);
+                        String name = action.split(":").length > 1 ? action.split(":")[1] : "";
+                        String profileText = queryAnilistAPI(name);
+                        if (profileText.charAt(0) == '!') {
+                            updateTextPool(true, "Error", profileText);
+
+                        } else {
+                            updateTextPool(true, "Error", "compiling information");
+
+                            timeline.profile = getAnimeProfileJson(profileText, name);
+                            updateTextPool(true, "Error", "displaying graphics");
+                            currentMenu = Menus.getTimelineMenu();
+                            currentMenu.add(timeline);
+                            timeline.profile.orderList("finish", true);
+                            updateTextPool(true, "Error", "");
+                        }
+                }
+            });
+
+            thread.start();
+
+
+
+
+
+                //    getDisplay(mainStage);
+            }
+            default -> System.out.println("unhandled button action");
+        }
+    }
+
+
+    public static double zoomScale = 1.0;
+
+    public static double x = 0;
     private static double dragXB = 0;
     private static double dragYB = 0;
     private static double dragX = 0;
     private static double dragY = 0;
-    private static double y = 0;
-
-
+    public static double y = 0;
 
 
 
@@ -193,162 +418,18 @@ public class HelloApplication extends Application {
 
     }
 
-    public static double gap = 75;
 
-    public static double determinedDiff = 17.28;
-
-    public static double imageWidth = 1.03*gap/1.5;
-    public static double imageHeight = gap*0.95;
-
-    public static double getRelativeValue(long start, long end) {
-       return ((end-start)/5000000.0);
-    }
-
-
-    public static void displayTimeline(AnimeProfile profile) {
-        if (indentByTime) {
-
-            if (!initialise_zoom) {
-                initialise_zoom = true;
-
-                double divisionValue = (4882812) * canvas.getWidth();
-                zoomScale = 1.0 / ((profile.endDate - profile.startDate) / divisionValue);
-                System.out.println("initialised zoom to " + zoomScale);
-            }
-        }
-
+    public static void displayTimeline() {
         canvas.getGraphicsContext2D().setFill(Color.BLACK);
-        canvas.getGraphicsContext2D().fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-
-        canvas.getGraphicsContext2D().setFill(Color.WHITE);
-        canvas.getGraphicsContext2D().setFont(Font.font("monospace",10*zoomScale));
+        canvas.getGraphicsContext2D().fillRect(0,0,HelloApplication.CANVAS_WIDTH,HelloApplication.CANVAS_HEIGHT);
 
 
-   //     double yearFactor = 1000;//and remember to remove the differential between the start of the year and when is started watching anime
-     //   for (int i = 0; i < 5; i++) {
-     //       canvas.getGraphz
-
-        int lines = 0;
-        for (AnimeLog log : profile.getAnimes()) {
-            double xv = x*zoomScale;
-
-            lines++;
-
-
-            double yv = gap*zoomScale+y*zoomScale+lines*zoomScale*gap;
-
-            if (indentByTime) {
-
-                canvas.getGraphicsContext2D().setFill(log.getScoreColor());
-                canvas.getGraphicsContext2D().fillRect(xv
-                        ,yv+zoomScale*(gap/4)+zoomScale*5.5,
-                        getRelativeValue(profile.startDate,log.getEndDate())*zoomScale+zoomScale*1000,
-                        2*zoomScale);
-              //  canvas.getGraphicsContext2D().setFill(Color.WHITE);
-
-                canvas.getGraphicsContext2D().fillText((int)Math.ceil(getAnimeDayDifference(log.startDate,log.endDate)+1)+"d, " +log.getValue("series_episodes") + " episodes"
-                        ,zoomScale*910+xv+getRelativeValue(profile.startDate, log.getEndDate())*zoomScale+zoomScale*determinedDiff
-                        ,yv+zoomScale*(gap/4));
-
-                canvas.getGraphicsContext2D().fillRect(zoomScale*1000+xv+getRelativeValue(profile.startDate, log.getStartDate())*zoomScale
-                        ,yv+zoomScale*(gap/4)+zoomScale*1.5,
-                        Math.max(getRelativeValue(log.getStartDate(),log.getEndDate())*zoomScale,zoomScale)+zoomScale*determinedDiff,
-                        10*zoomScale);
-
-                double startPointX = getRelativeValue(profile.startDate, log.getShowStartDate());
-                double endPointX = getRelativeValue(profile.startDate, log.getShowEndDate());
-
-                canvas.getGraphicsContext2D().fillRect(zoomScale*1000+xv+startPointX*zoomScale
-                        ,yv+zoomScale*(gap/4)+zoomScale*1.5,
-                        zoomScale*1,
-                        10*zoomScale);
-
-                canvas.getGraphicsContext2D().fillRect(zoomScale*1000+xv+endPointX*zoomScale
-                        ,yv+zoomScale*(gap/4)+zoomScale*1.5,
-                        zoomScale*1,
-                        10*zoomScale);
-             //   if ()
-
-              //  System.out.println(zoomScale*1000+xv+getRelativeValue(profile.startDate, log.getStartDate()));
-
-                double day =getRelativeValue(profile.startDate,log.getEndDate())/determinedDiff+ x/determinedDiff-imageWidth/determinedDiff+1000/determinedDiff;//getAnimeDayDifference(profile.startDate,log.getEndDate());
-                if (day+1 <0) {
-                    canvas.getGraphicsContext2D().fillText("< "+String.format("%.02f", day+1)+"d",60*zoomScale
-                            ,yv+zoomScale*(gap/4));
-                } else {
-                    canvas.getGraphicsContext2D().fillText(String.format("%.02f", day+1)+"d >",60*zoomScale
-                            ,yv+zoomScale*(gap/4));
-                }
-
-
-
-
-                canvas.getGraphicsContext2D().setFill(Color.WHITE);
-
-                canvas.getGraphicsContext2D().fillRect(zoomScale*1000+xv+startPointX*zoomScale
-                        ,yv+zoomScale*(gap/4)+zoomScale*1.5,
-                        zoomScale*1,
-                        10*zoomScale);
-                canvas.getGraphicsContext2D().fillText("air date: "+ log.getValue("series_start"), zoomScale*920+xv+startPointX*zoomScale,yv+zoomScale*(gap/4)+zoomScale*21);
-                if (endPointX != startPointX) {
-                    canvas.getGraphicsContext2D().fillRect(zoomScale * 1000 + xv + endPointX * zoomScale
-                            , yv + zoomScale * (gap / 4) + zoomScale * 1.5,
-                            zoomScale * 1,
-                            10 * zoomScale);
-                    canvas.getGraphicsContext2D().fillText("end date: " + log.getValue("series_end"), zoomScale * 920 + xv + endPointX * zoomScale, yv + zoomScale * (gap / 4) + zoomScale * 21);
-                }
-
-            }
-
-
-
-
-            if (!(xv > CANVAS_WIDTH || yv > CANVAS_HEIGHT)) {
-                if (minZoomImage <zoomScale) {
-                    if (!log.findingImage) {
-
-                        log.findingImage = true;
-                        Thread thread = new Thread(new Runnable() {
-                            public void run() {
-                                while (System.currentTimeMillis()-lastImageLoad < min_interval_load_image) {
-                                    try {
-                                        Thread.sleep(min_interval_load_image);
-                                    } catch (InterruptedException e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                }
-                                lastImageLoad = System.currentTimeMillis();
-                                log.image = new Image(log.getValue("image"), 100, 150, false, false);
-
-
-                            }
-                        });
-
-                        thread.start();
-
-
-                    }
-                }
-                if (log.image == null) {
-                    canvas.getGraphicsContext2D().setFill(Color.valueOf(log.getValue("color")));
-                    canvas.getGraphicsContext2D().fillRect(0, yv-(gap/2)*zoomScale, imageWidth*zoomScale, zoomScale*imageHeight);
-                } else {
-                    canvas.getGraphicsContext2D().drawImage(log.image, 0, yv-(gap/2)*zoomScale, imageWidth*zoomScale, zoomScale*imageHeight);
-                }
-                canvas.getGraphicsContext2D().setFill(Color.WHITE);
-                canvas.getGraphicsContext2D().fillText(log.getDisplayString(),60*zoomScale,yv);
-            }
-        }
-        canvas.getGraphicsContext2D().setFill(Color.rgb(0,0,0,0.5));
-        canvas.getGraphicsContext2D().fillRect(0,0,CANVAS_WIDTH,Math.max(gap*zoomScale,gap*zoomScale+y*zoomScale));
-        canvas.getGraphicsContext2D().setFill(Color.WHITE);
-        canvas.getGraphicsContext2D().setFont(Font.font("monospace", FontWeight.BOLD, FontPosture.REGULAR,20*zoomScale));
-        canvas.getGraphicsContext2D().fillText(profile.getTitleCard() ,Math.max(0,x*zoomScale),Math.max(gap*zoomScale,gap*zoomScale+y*zoomScale));
+        drawMenu();
     }
 
-    public static double getAnimeDayDifference(long startdate, long enddate) {
-        return (getRelativeValue(startdate, enddate))/determinedDiff;
-    }
+
+
+
 
 
 
@@ -388,13 +469,14 @@ public class HelloApplication extends Application {
             con.setRequestProperty("Accept","application/json");
             con.setDoOutput(true);
             con.setDoInput(true);
+            updateTextPool(true,"Error","Anilist connection established.\nRequesting information...");
 
          //   con.connect();
 
 
 
             OutputStream out = con.getOutputStream();
-            System.out.println(json.toString());
+           // System.out.println(json.toString());
             out.write(json.toString().getBytes());
 
             int statusCode = con.getResponseCode();
@@ -406,14 +488,21 @@ public class HelloApplication extends Application {
                 System.out.println("managed to get input");
 
             } else {
+
                 is = con.getErrorStream();
+                System.out.println("Response Code:"
+                        + con.getResponseCode());
+                System.out.println(
+                        "Response Message:"
+                                + con.getResponseMessage());
+        //        return "Response Code:\n"
+          //              + con.getResponseCode()+"\n"+ "Response Message:\n" + con.getResponseMessage();
             }
 
-            System.out.println("Response Code:"
-                    + con.getResponseCode());
-            System.out.println(
-                    "Response Message:"
-                            + con.getResponseMessage());
+
+            updateTextPool(true,"Error","Anilist API request successful.\nCompiling information...");
+
+
 
             BufferedReader responseReader = new BufferedReader(new InputStreamReader(is));
 
@@ -429,17 +518,26 @@ public class HelloApplication extends Application {
                 FileWriter fileWriter = new FileWriter(file);
                 fileWriter.write(response.toString().replace("{","\n{"));
                 fileWriter.close();
+           //     File config = new File(username + "_config.txt");
+            //    FileWriter fileWriter2 = new FileWriter(file);
+           //     fileWriter.write(response.toString().replace("{","\n{"));
+              //  fileWriter.close();
+                return response.toString().replace("{","\n{");
+            } else {
+                updateTextPool(true,"Error",response.toString().replace("{","\n{"));
+                return "!"+response.toString().replace("{","\n{");
             }
 
-            return response.toString().replace("{","\n{");
 
         } catch (IOException e) {
 
             e.printStackTrace();
-            return "";
+            updateTextPool(true,"Error","IO Exception. please contact Injata (the dev):\n" + e.getMessage());
+            return "IO Exception. please contact Injata (the dev):\n" + e.getMessage();
         }
 
     }
+
 
     public static AnimeProfile getAnimeProfileJson(String input, String username) {
         AnimeProfile profile = new AnimeProfile();
@@ -474,7 +572,7 @@ public class HelloApplication extends Application {
                     log.score = Double.parseDouble(animeLogJson.get("score").asText());
 
                     log.setValue("series_episodes",animeLogJson.get("media").get("episodes").intValue()+"");
-
+                    log.setValue("my_status",animeLogJson.get("status").textValue());
 
                     JsonNode startedAt = animeLogJson.get("startedAt");
                     log.setValue("my_start_date",startedAt.get("year").intValue()+"-"+startedAt.get("month").intValue()+"-"+startedAt.get("day").intValue());
@@ -489,6 +587,9 @@ public class HelloApplication extends Application {
 
 
                     log.setValue("series_title_english",animeLogJson.get("media").get("title").get("english").textValue());
+                    if (log.getValue("series_title_english").equals("-1")) {
+                        log.setValue("series_title_english",animeLogJson.get("media").get("title").get("romaji").textValue());
+                    }
 
                     log.setValue("image",animeLogJson.get("media").get("coverImage").get("medium").textValue());
                     addLogValueIfNotNull(log,animeLogJson.get("media").get("coverImage"),"color");

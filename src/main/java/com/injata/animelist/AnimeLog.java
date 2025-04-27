@@ -36,6 +36,16 @@ public class AnimeLog {
     public boolean findingImage = false;
     public Image image;
 
+    public status animestatus;
+
+    public enum status {
+        COMPLETED,
+        DROPPED,
+        PAUSED,
+        PLANNING,
+        CURRENT
+
+    }
 
 
     public AnimeLog() {
@@ -45,11 +55,12 @@ public class AnimeLog {
         watchedEpisodes = 0;
         episodes = 0;
         animeValues = new HashMap<>();
+        animestatus = status.PAUSED;
     }
 
     public String getDisplayString() {
-        return getValue("series_title" + (displayEN ? "_english" : "")) + " score:"
-                + getValue("my_score")+ " status:" +  getValue("my_status") + " " + getValue("my_start_date")+ " " + getValue("my_finish_date");
+        return getValue("series_title" + (displayEN ? "_english" : "")) + "\n"
+                + getValue("my_score")+ "/10 " +  getValue("my_status") + " " + getValue("my_start_date")+ " to " + getValue("my_finish_date");
     }
 
 
@@ -58,6 +69,10 @@ public class AnimeLog {
             return;
         }
         switch(type) {
+            case "my_status"-> {
+                animestatus = status.valueOf(input);
+                animeValues.put(type,input);
+            }
             case "series_episodes" -> episodes = Integer.parseInt(input);
             case "my_watched_episodes" -> watchedEpisodes = Integer.parseInt(input);
             case "my_score" -> score = Integer.parseInt(input);
@@ -114,7 +129,13 @@ public class AnimeLog {
         }
     }
     public long getEndDate() {
-        return endDate<= 0 ? getStartDate() : endDate;
+        if (endDate > 0) {
+            return endDate;
+        }
+        if (animestatus==status.CURRENT) {
+            return HelloApplication.launchTime;
+        }
+        return getStartDate();
     }
     public long getStartDate() {
         return startDate <= 0 ? Long.MAX_VALUE : startDate;
@@ -133,21 +154,37 @@ public class AnimeLog {
 
     public Color getScoreColor() {
         int v = getScore();
+
+     //   if (getValue("my_status").equals("DROPPED")) {
+      //      return Color.DARKGRAY;
+     //   }
+
+        //red, orange, yellow, green, blue, pink
         if (v==0) {
             return Color.GRAY;
         }
-        if (v <= 50) {
-            return Color.rgb(v*5, 0, 0, 0.5);
+        if (v <40) {
+
+
+
+            return Color.rgb(v*5, 0, 0, 1);
+
         }
-        if (v <= 70) {
-            return Color.rgb(255, (int)((v-50)*12.75), 0, 0.5);
+
+        if (v <=65) {
+
+
+
+            return Color.rgb(255, (int)((Math.max(v-30,0))*7.28), 0, 1);
+
         }
-        if (v <= 90) {
-            return Color.rgb(0, 255, (int)((v-70)*12.75), 0.5);
-        }
+
         if (v <= 100) {
-            return Color.rgb(255, 0, 255, 0.8);
+            return Color.rgb(0, 255, (int)((v-65)*7.28), 1);
         }
+      //  if (v <= 100) {
+      //      return Color.rgb(255, 0, 255, 1);
+      //  }
         return Color.WHITE;
     }
     public int getValueInt(String type) {
