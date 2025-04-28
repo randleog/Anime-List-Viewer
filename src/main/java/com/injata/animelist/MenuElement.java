@@ -4,8 +4,8 @@ import javafx.scene.canvas.GraphicsContext;
 
 public abstract class MenuElement {
 
-    public int x;
-    public int y;
+    public double x;
+    public double y;
     public MenuElement(int x, int y) {
 
         this.x = x;
@@ -23,18 +23,23 @@ public abstract class MenuElement {
         this.y = y;
     }
 
-    public int getX() {
+    public double getX() {
         return this.x;
     }
 
-    public  int getY() {
+    public  double getY() {
         return this.y;
     }
 
-    public abstract void drawElement(GraphicsContext g, double zoom, double xp, double yp);
-    public abstract boolean interactElement(String info,boolean mouseDown,double zoom, double xp, double yp);
+    public abstract void drawElement(GraphicsContext g);
+    public abstract boolean interactElement(String info,boolean mouseDown, double xp, double yp);
 
+    public abstract boolean scroll(double delta, double xp, double yp);
 
+    public abstract boolean drag(double xp, double yp);
+
+    public abstract boolean mouseRelease(double xp, double yp);
+    public abstract boolean mouseDown(double xp, double yp);
 
     public abstract String getInfo();
 }

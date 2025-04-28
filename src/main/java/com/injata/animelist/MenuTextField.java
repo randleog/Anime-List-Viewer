@@ -56,7 +56,7 @@ public class MenuTextField extends MenuElement{
     }
 
     @Override
-    public void drawElement(GraphicsContext g, double zoom, double xp, double yp) {
+    public void drawElement(GraphicsContext g) {
 
 
         if (HelloApplication.focusedItem ==this) {
@@ -86,7 +86,7 @@ public class MenuTextField extends MenuElement{
     }
 
     @Override
-    public boolean interactElement(String info, boolean releasing,double zoom, double xp, double yp) {
+    public boolean interactElement(String info, boolean releasing, double xp, double yp) {
 
 
         if (info.isEmpty()) {
@@ -114,6 +114,26 @@ public class MenuTextField extends MenuElement{
         return false;
 
 
+    }
+
+    @Override
+    public boolean scroll(double delta, double xp, double yp) {
+        return false;
+    }
+
+    @Override
+    public boolean drag(double xp, double yp) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseRelease(double xp, double yp) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseDown(double xp, double yp) {
+        return false;
     }
 
     private void releaseText(String text) {

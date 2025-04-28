@@ -27,10 +27,14 @@ public class AnimeLog {
     public JsonNode rawData;
 
 
+    public int rewatches;
+
 
     public HashMap<String, String> animeValues;
 
     public boolean displayEN = true;
+
+
 
 
     public boolean findingImage = false;
@@ -56,6 +60,8 @@ public class AnimeLog {
         episodes = 0;
         animeValues = new HashMap<>();
         animestatus = status.PAUSED;
+        rewatches= 0;
+
     }
 
     public String getDisplayString() {
@@ -76,6 +82,7 @@ public class AnimeLog {
             case "series_episodes" -> episodes = Integer.parseInt(input);
             case "my_watched_episodes" -> watchedEpisodes = Integer.parseInt(input);
             case "my_score" -> score = Integer.parseInt(input);
+            case "repeat" -> rewatches = Integer.parseInt(input);
             case "my_start_date" -> {
                 input = input.replace("null","0");
                 SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
@@ -141,13 +148,37 @@ public class AnimeLog {
         return startDate <= 0 ? Long.MAX_VALUE : startDate;
     }
 
+    public int getRewatches() {
+        return rewatches;
+    }
+
     public long getShowEndDate() {
         return showEndDate<= 0 ? getShowStartDate() : showEndDate;
     }
     public long getShowStartDate() {
         return showStartDate <= 0 ? Long.MAX_VALUE : showStartDate;
     }
+    public int getTimeWatching() {
 
+        return (int)Math.ceil(MenuAnimeTimeline.getAnimeDayDifference(startDate,endDate));
+    }
+
+    public double getWatchPace() {
+
+        int timeWatching = getTimeWatching()+1;
+        if (timeWatching <=0) {
+            timeWatching=Integer.MAX_VALUE;
+        }
+
+        return ((episodes*1.0)/Math.max(timeWatching,1.0));
+    }
+
+    public int getEpisodes() {
+        return episodes;
+    }
+    public int getWatchedEpisodes() {
+        return watchedEpisodes;
+    }
     public int getScore() {
         return (int)(score*10);
     }

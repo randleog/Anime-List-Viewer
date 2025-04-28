@@ -68,8 +68,6 @@ public class HelloApplication extends Application {
 
     public static long launchTime;
 
-    public static double minZoom = 20;
-
     public static boolean shouldUpdateFrame = true;
 
 
@@ -105,8 +103,8 @@ public class HelloApplication extends Application {
         getDisplay(mainStage);
 
         mainStage.show();
-        Thread thread = new Thread(new Runnable() {
-            public void run() {
+     /*   Platform.runLater(()->{
+
                 while (shouldUpdateFrame) {
                     try {
                         Thread.sleep(1000);
@@ -117,10 +115,13 @@ public class HelloApplication extends Application {
                 }
 
 
-            }
+
         });
 
-        thread.start();
+
+      */
+
+
 
     /*    stage.setOnCloseRequest(windowEvent -> {
             stage.close();
@@ -197,12 +198,12 @@ public class HelloApplication extends Application {
                 stage.setFullScreen(false);
             }
 
-            focusedItem.interactElement(keyEvent.getCode()+"",false,0,0,0);
+            focusedItem.interactElement(keyEvent.getCode()+"",false,0,0);
             displayTimeline();
         });
         scene.setOnKeyReleased(keyEvent -> {
 
-            focusedItem.interactElement(keyEvent.getCode()+"",true,0,0,0);
+            focusedItem.interactElement(keyEvent.getCode()+"",true,0,0);
             displayTimeline();
         });
 
@@ -211,16 +212,9 @@ public class HelloApplication extends Application {
 
 
 
-
-
-
         stage.show();
 
 
-
-
-
-        //System.out.println(profile.getDisplayString());
         displayTimeline();
 
 
@@ -230,35 +224,27 @@ public class HelloApplication extends Application {
         });
         canvas.getGraphicsContext2D().setImageSmoothing(true);
         canvas.setOnMousePressed(dragEvent -> {
-            dragX = dragEvent.getX();
-            dragY = dragEvent.getY();
-            dragXB = x;
-            dragYB=y;
-
+            pressMenu(dragEvent.getX(),dragEvent.getY());
+            displayTimeline();
         });
         canvas.setOnMouseDragged(dragEvent -> {
 
 
 
-            x = dragXB-(dragX-dragEvent.getX())/zoomScale;
-            y = dragYB-(dragY-dragEvent.getY())/zoomScale;
-            interactMenu(false,dragEvent.getX(),dragEvent.getY());
-         //   if (dragEvent.getX() < 0) {
-         //       moveMouse(new Point((int)CANVAS_WIDTH,(int)dragEvent.getY()));
-//
-          //
-            //   }
-            // x = Math.min(100,x);
-            // y = Math.min(100,y);
+
+
+
+            dragMenu(dragEvent.getX(),dragEvent.getY());
+
             displayTimeline();
         });
 
         canvas.setOnMouseReleased(dragEvent -> {
-            dragX = dragEvent.getX();
-            dragY = dragEvent.getY();
+            releaseMenu(dragEvent.getX(),dragEvent.getY());
 
 
         });
+        /*
         canvas.setOnScrollStarted(scrollEvent -> {
             //       double zoomFactor = scrollEvent.getDeltaY() > 0 ? 1.1 : 0.9;
             //    zoomScale=Math.min(zoomScale*zoomFactor,minZoom);
@@ -274,31 +260,13 @@ public class HelloApplication extends Application {
             System.out.println("scroll ended");
         });
 
+         */
+
         canvas.setOnScroll(scrollEvent -> {
-            //      x -=scrollEvent.getX();
-            //    y -=scrollEvent.getY();
-
-            //  canvas.getGraphicsContext2D().setImageSmoothing(true);
-
-            double zoomFactor = scrollEvent.getDeltaY() > 0 ? 1.1 : 0.9;
-            double distanceToCenterBeforeX = scrollEvent.getX();
-            double distanceToCenterBeforeY = scrollEvent.getY();
-
-            double distanceNowX = distanceToCenterBeforeX * zoomFactor;
-            double distanceNowY = distanceToCenterBeforeY * zoomFactor;
-            double xdiff = distanceNowX - distanceToCenterBeforeX;
-            double ydiff = distanceNowY - distanceToCenterBeforeY;
 
 
 
-            if (minZoom < zoomScale*zoomFactor) {
-                zoomScale=minZoom;
-            } else {
-                x -= (xdiff / zoomScale) / zoomFactor;
-                y -= (ydiff / zoomScale) / zoomFactor;
-                zoomScale=zoomScale*zoomFactor;
-            }
-
+            scrollMenu(scrollEvent.getDeltaY(),scrollEvent.getX(),scrollEvent.getY());
 
             displayTimeline();
         });
@@ -331,18 +299,59 @@ public class HelloApplication extends Application {
 
     public static void drawMenu() {
         for (MenuElement element : currentMenu) {
-            element.drawElement(canvas.getGraphicsContext2D(),zoomScale,x*zoomScale,y*zoomScale);
+            element.drawElement(canvas.getGraphicsContext2D());
 
        //     System.out.println("should have drawn " + element.getInfo());
         }
+    }
+
+    public static boolean releaseMenu(double x, double y) {
+        boolean shouldUpdate = false;
+        for (MenuElement element : currentMenu) {
+           shouldUpdate = element.mouseRelease(x,y);
+
+       //     System.out.println("should have drawn " + element.getInfo());
+        }
+        return shouldUpdate;
+    }
+
+    public static boolean pressMenu(double x, double y) {
+        boolean shouldUpdate = false;
+        for (MenuElement element : currentMenu) {
+            shouldUpdate = element.mouseDown(x,y);
+
+            //     System.out.println("should have drawn " + element.getInfo());
+        }
+        return shouldUpdate;
+    }
+    public static boolean scrollMenu(double delta,double x, double y) {
+        boolean shouldUpdate = false;
+        for (MenuElement element : currentMenu) {
+            shouldUpdate = element.scroll(delta,x,y);
+
+            //     System.out.println("should have drawn " + element.getInfo());
+        }
+        return shouldUpdate;
+    }
+    public static boolean dragMenu(double x, double y) {
+        boolean shouldUpdate = false;
+        for (MenuElement element : currentMenu) {
+            shouldUpdate = element.drag(x,y);
+
+            //     System.out.println("should have drawn " + element.getInfo());
+        }
+        return shouldUpdate;
     }
 
     public static boolean interactMenu(boolean click,double x, double y) {
         boolean shouldUpdate = false;
         for (MenuElement element : currentMenu) {
 
-            shouldUpdate = element.interactElement("",click,zoomScale,x,y);
-       //     System.out.println("should have drawn " + element.getInfo());
+            shouldUpdate = element.interactElement("",click,x,y);
+            if (shouldUpdate) {
+                return true;
+            }
+            //     System.out.println("should have drawn " + element.getInfo());
         }
         return shouldUpdate;
     }
@@ -373,10 +382,12 @@ public class HelloApplication extends Application {
                             updateTextPool(true, "Error", "displaying graphics");
                             currentMenu = Menus.getTimelineMenu();
                             currentMenu.add(timeline);
-                            timeline.profile.orderList("finish", true);
+                            timeline.profile.orderList("start", true);
                             updateTextPool(true, "Error", "");
                         }
-                }
+
+
+                    }
             });
 
             thread.start();
@@ -392,14 +403,12 @@ public class HelloApplication extends Application {
     }
 
 
-    public static double zoomScale = 1.0;
-
-    public static double x = 0;
-    private static double dragXB = 0;
-    private static double dragYB = 0;
-    private static double dragX = 0;
-    private static double dragY = 0;
-    public static double y = 0;
+    public static double getCanvasWidth() {
+        return CANVAS_WIDTH;
+    }
+    public static double getCanvasHeight() {
+        return CANVAS_HEIGHT;
+    }
 
 
 
@@ -420,32 +429,19 @@ public class HelloApplication extends Application {
 
 
     public static void displayTimeline() {
-        canvas.getGraphicsContext2D().setFill(Color.BLACK);
-        canvas.getGraphicsContext2D().fillRect(0,0,HelloApplication.CANVAS_WIDTH,HelloApplication.CANVAS_HEIGHT);
+     //   Platform.runLater(()-> {
+            canvas.getGraphicsContext2D().setFill(Color.BLACK);
+            canvas.getGraphicsContext2D().fillRect(0, 0, HelloApplication.CANVAS_WIDTH, HelloApplication.CANVAS_HEIGHT);
 
 
-        drawMenu();
+            drawMenu();
+     //   });
     }
 
 
 
 
 
-
-
-
-    public static void displayScoreDistribution(AnimeProfile profile) {
-        int[] ratings = new int[10];
-        for (AnimeLog log : profile.getAnimes()) {
-            if (log.getValueInt("my_score") > 0) {
-            ratings[log.getValueInt("my_score")/10-1]++;
-            }
-        }
-        canvas.getGraphicsContext2D().setFill(Color.WHEAT);
-        for (int i = 0; i < ratings.length; i++) {
-            canvas.getGraphicsContext2D().fillRect(x*zoomScale+i*zoomScale*ratings.length,y*zoomScale,zoomScale*ratings.length,zoomScale*20*ratings[i]);
-        }
-    }
 
 
     // @JsonTypeInfo(include = JsonTypeInfo.As.WRAPPER_OBJECT, use = JsonTypeInfo.Id.NAME)
@@ -570,6 +566,7 @@ public class HelloApplication extends Application {
                    // System.out.println(animeLogJson.get("media").get("title").get("romaji"));
                     AnimeLog log = new AnimeLog();
                     log.score = Double.parseDouble(animeLogJson.get("score").asText());
+                    log.setValue("repeat",animeLogJson.get("repeat").asText());
 
                     log.setValue("series_episodes",animeLogJson.get("media").get("episodes").intValue()+"");
                     log.setValue("my_status",animeLogJson.get("status").textValue());

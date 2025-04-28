@@ -21,7 +21,14 @@ public class AnimeProfile {
 
     public ArrayList<String> lists;
 
+    public boolean includePlanning = false;
+    public boolean includePausedDropped = false;
+
     public void addAnime(AnimeLog anime) {
+
+        if ((anime.animestatus==AnimeLog.status.PLANNING&& !includePlanning) || (!includePausedDropped && (anime.animestatus==AnimeLog.status.PAUSED || anime.animestatus==AnimeLog.status.DROPPED ))) {
+            return;
+        }
 
         animes.add(anime);
         long startDateValue = anime.startDate;
@@ -116,9 +123,12 @@ public class AnimeProfile {
     public void orderList(String order, boolean asc) {
         switch (order) {
             case "finish" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getEndDate) : Comparator.comparing(AnimeLog::getEndDate).reversed());
+            case "start" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getStartDate) : Comparator.comparing(AnimeLog::getStartDate).reversed());
             case "score" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getScore): Comparator.comparing(AnimeLog::getScore).reversed());
-
-
+            case "timewatching" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getTimeWatching): Comparator.comparing(AnimeLog::getTimeWatching).reversed());
+            case "episodes" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getEpisodes): Comparator.comparing(AnimeLog::getEpisodes).reversed());
+            case "rewatches" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getRewatches): Comparator.comparing(AnimeLog::getRewatches).reversed());
+            case "pace" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getWatchPace): Comparator.comparing(AnimeLog::getWatchPace).reversed());
         }
     }
 

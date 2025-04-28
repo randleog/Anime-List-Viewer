@@ -18,6 +18,8 @@ public class MenuAnimeTimeline extends MenuElement{
 
 
 
+    public static double minZoom = 1000;
+
 
     public AnimeProfile profile;
 
@@ -33,7 +35,7 @@ public class MenuAnimeTimeline extends MenuElement{
 
     public static double determinedDiff = 17.28;
 
-    public static double imageWidth = 1.03*gap/1.5;
+    public static double imageWidth = 1.03*gap/1.45;
     public static double imageHeight = gap*0.95;
 
     public static double zoom_Text_Visible = 0.5;
@@ -41,26 +43,36 @@ public class MenuAnimeTimeline extends MenuElement{
 
     public static double max_text_Size_zoom = 2;
 
+    public double dragXB=0;
+    public double dragYB=0;
+    public double dragX=0;
+    public double dragY=0;
+
+
+
+
+    public double zoomScale;
+
     public MenuAnimeTimeline(int x, int y) {
         super(x, y);
     }
 
 
     @Override
-    public void drawElement(GraphicsContext g, double zoom, double xp, double yp) {
-            if (profile == null) {
-                g.fillText("ERROR: No profile selected",100,100);
-                return;
-            }
-            g.setFill(Color.WHITE);
-            g.setFont(Font.font("monospace",9*HelloApplication.zoomScale));
-            if (HelloApplication.zoomScale==0) {
-                initialise_zoom = true;
+    public void drawElement(GraphicsContext g) {
+        if (profile == null) {
+            g.fillText("ERROR: No profile selected",100,100);
+            return;
+        }
+        g.setFill(Color.WHITE);
+        g.setFont(Font.font("monospace",9*zoomScale));
+        if (!initialise_zoom) {
+            initialise_zoom = true;
 
-                double divisionValue = (4882812) * g.getCanvas().getWidth();
-                HelloApplication.zoomScale = 1.0 / ((profile.endDate - profile.startDate) / divisionValue);
-                System.out.println("initialised zoom to " + HelloApplication.zoomScale);
-            }
+            double divisionValue = (4882812) * g.getCanvas().getWidth();
+            zoomScale = 1.0 / ((profile.endDate - profile.startDate) / divisionValue);
+            System.out.println("initialised zoom to " + zoomScale);
+        }
 
 
 
@@ -74,23 +86,23 @@ public class MenuAnimeTimeline extends MenuElement{
 
         long currentTime = System.currentTimeMillis();
         double now = getRelativeValue(profile.startDate,currentTime);
-        double xv = HelloApplication.x*HelloApplication.zoomScale;
+        double xv = x*zoomScale;
 
 
 
         //now line
-        g.setLineWidth(Math.max(0.5,HelloApplication.zoomScale*1.1));
+        g.setLineWidth(Math.max(0.5,zoomScale*1.1));
 
         g.setLineDashes(1);
         g.setStroke(Color.WHITE);
-        g.strokeLine(HelloApplication.zoomScale*1000+xv+now*HelloApplication.zoomScale
+        g.strokeLine(zoomScale*1000+xv+now*zoomScale
                 ,0,
-                HelloApplication.zoomScale*1000+xv+now*HelloApplication.zoomScale,
+                zoomScale*1000+xv+now*zoomScale,
                 g.getCanvas().getHeight());
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         Date date = new Date(currentTime);
-        g.fillText("NOW "+date, HelloApplication.zoomScale*1010+xv+now*HelloApplication.zoomScale,((gap)*HelloApplication.zoomScale));
+        g.fillText("NOW "+date, zoomScale*1010+xv+now*zoomScale,((gap)*zoomScale));
 
 
 
@@ -112,12 +124,12 @@ public class MenuAnimeTimeline extends MenuElement{
                 throw new RuntimeException(e);
             }
             double yearTime = getRelativeValue(profile.startDate,yearDate.getTime());
-            g.strokeLine(HelloApplication.zoomScale*1000+xv+yearTime*HelloApplication.zoomScale
+            g.strokeLine(zoomScale*1000+xv+yearTime*zoomScale
                     ,0,
-                    HelloApplication.zoomScale*1000+xv+yearTime*HelloApplication.zoomScale,
+                    zoomScale*1000+xv+yearTime*zoomScale,
                     g.getCanvas().getHeight());
 
-            fillTextIfVisible(g,(startYear+i)+"-01-01",HelloApplication.zoomScale * 1010 + xv + yearTime * HelloApplication.zoomScale, ((gap) * HelloApplication.zoomScale));
+            fillTextIfVisible(g,(startYear+i)+"-01-01",zoomScale * 1010 + xv + yearTime * zoomScale, ((gap) * zoomScale));
 
         }
 
@@ -131,85 +143,92 @@ public class MenuAnimeTimeline extends MenuElement{
             lines++;
 
 
-            double yv = gap*HelloApplication.zoomScale+HelloApplication.y*HelloApplication.zoomScale+lines*HelloApplication.zoomScale*gap;
+            double yv = gap*zoomScale+y*zoomScale+lines*zoomScale*gap;
 
 
 
 
 
 
-                g.setFill(log.getScoreColor());
-                g.fillRect(xv
-                        ,yv+HelloApplication.zoomScale*(gap/4)+HelloApplication.zoomScale*5.5,
-                        getRelativeValue(profile.startDate,log.getEndDate())*HelloApplication.zoomScale+HelloApplication.zoomScale*1000,
-                        2*HelloApplication.zoomScale);
-                //  canvas.getGraphicsContext2D().setFill(Color.WHITE);
+            g.setFill(log.getScoreColor());
 
 
-                fillTextIfVisible(g,(int)Math.ceil(getAnimeDayDifference(log.startDate,log.endDate)+1)+" days, " +log.getValue("series_episodes") + " eps"
-                        ,HelloApplication.zoomScale*910+xv+getRelativeValue(profile.startDate, log.getEndDate())*HelloApplication.zoomScale+HelloApplication.zoomScale*determinedDiff
-                        ,yv+HelloApplication.zoomScale*(gap/4));
-
-                g.fillRect(HelloApplication.zoomScale*1000+xv+getRelativeValue(profile.startDate, log.getStartDate())*HelloApplication.zoomScale
-                        ,yv+HelloApplication.zoomScale*(gap/4)+HelloApplication.zoomScale*1.5,
-                        Math.max(getRelativeValue(log.getStartDate(),log.getEndDate())*HelloApplication.zoomScale,HelloApplication.zoomScale)+HelloApplication.zoomScale*determinedDiff,
-                        10*HelloApplication.zoomScale);
-
-                double startPointX = getRelativeValue(profile.startDate, log.getShowStartDate());
-                double endPointX = getRelativeValue(profile.startDate, log.getShowEndDate());
-
-                g.fillRect(HelloApplication.zoomScale*1000+xv+startPointX*HelloApplication.zoomScale
-                        ,yv+HelloApplication.zoomScale*(gap/4)+HelloApplication.zoomScale*1.5,
-                        HelloApplication.zoomScale*1,
-                        10*HelloApplication.zoomScale);
-
-                g.fillRect(HelloApplication.zoomScale*1000+xv+endPointX*HelloApplication.zoomScale
-                        ,yv+HelloApplication.zoomScale*(gap/4)+HelloApplication.zoomScale*1.5,
-                        HelloApplication.zoomScale*1,
-                        10*HelloApplication.zoomScale);
-                //   if ()
-
-                //  System.out.println(zoomScale*1000+xv+getRelativeValue(profile.startDate, log.getStartDate()));
-
-                double day =getRelativeValue(profile.startDate,log.getEndDate())/determinedDiff+ x/determinedDiff-imageWidth/determinedDiff+1000/determinedDiff;//getAnimeDayDifference(profile.startDate,log.getEndDate());
-                if (day+1 <0) {
-
-                    fillTextIfVisible(g,"< "+String.format("%.02f", day+1)+"d",60*HelloApplication.zoomScale,yv+HelloApplication.zoomScale*(gap/4));
-                } else {
-
-                    fillTextIfVisible(g,String.format("%.02f", day+1)+"d >",60*HelloApplication.zoomScale,yv+HelloApplication.zoomScale*(gap/4));
-
-                }
+            //pre watch line
+            g.fillRect(xv
+                    ,yv+zoomScale*(gap/4)+zoomScale*5.5,
+                    getRelativeValue(profile.startDate,log.getEndDate())*zoomScale+zoomScale*1000,
+                    2*zoomScale);
+            //  canvas.getGraphicsContext2D().setFill(Color.WHITE);
 
 
+            fillTextIfVisible(g,(int)Math.ceil(getAnimeDayDifference(log.startDate,log.endDate)+1)+" days, " +log.getValue("series_episodes") + " eps "
+                    ,zoomScale*910+xv+getRelativeValue(profile.startDate, log.getEndDate())*zoomScale+zoomScale*determinedDiff
+                    ,yv+zoomScale*(gap/4));
 
 
-                g.setFill(Color.WHITE);
+            //watch time line
+            g.fillRect(zoomScale*1000+xv+getRelativeValue(profile.startDate, log.getStartDate())*zoomScale
+                    ,yv+zoomScale*(gap/4)+zoomScale*5.5,
+                    Math.max(getRelativeValue(log.getStartDate(),log.getEndDate())*zoomScale,zoomScale)+zoomScale*determinedDiff,
+                    10*zoomScale);
 
-                g.fillRect(HelloApplication.zoomScale*1000+xv+startPointX*HelloApplication.zoomScale
-                        ,yv+HelloApplication.zoomScale*(gap/4)+HelloApplication.zoomScale*1.5,
-                        HelloApplication.zoomScale*1,
-                        10*HelloApplication.zoomScale);
-                //  canvas.getGraphicsContext2D().fillText("air date: "+ log.getValue("series_start"), zoomScale*920+xv+startPointX*zoomScale,yv+zoomScale*(gap/4)+zoomScale*21);
-                fillTextIfVisible(g,"air date: "+ log.getValue("series_start"),HelloApplication.zoomScale*920+xv+startPointX*HelloApplication.zoomScale,yv+HelloApplication.zoomScale*(gap/4)+HelloApplication.zoomScale*21);
+            double startPointX = getRelativeValue(profile.startDate, log.getShowStartDate());
+            double endPointX = getRelativeValue(profile.startDate, log.getShowEndDate());
 
-                if (endPointX != startPointX) {
-                    g.fillRect(HelloApplication.zoomScale * 1000 + xv + endPointX * HelloApplication.zoomScale
-                            , yv + HelloApplication.zoomScale * (gap / 4) + HelloApplication.zoomScale * 1.5,
-                            HelloApplication.zoomScale * 1,
-                            10 * HelloApplication.zoomScale);
-                    fillTextIfVisible(g,"end date: " + log.getValue("series_end"),HelloApplication.zoomScale * 920 + xv + endPointX * HelloApplication.zoomScale
-                            ,yv + HelloApplication.zoomScale * (gap / 4) + HelloApplication.zoomScale * 21);
+            g.fillRect(zoomScale*1000+xv+startPointX*zoomScale
+                    ,yv+zoomScale*(gap/4)+zoomScale*1.5,
+                    zoomScale*1,
+                    10*zoomScale);
 
-                }
+            g.fillRect(zoomScale*1000+xv+endPointX*zoomScale
+                    ,yv+zoomScale*(gap/4)+zoomScale*1.5,
+                    zoomScale*1,
+                    10*zoomScale);
+            //   if ()
+
+            //  System.out.println(zoomScale*1000+xv+getRelativeValue(profile.startDate, log.getStartDate()));
+
+            double day =getRelativeValue(profile.startDate,log.getEndDate())/determinedDiff+ x/determinedDiff-imageWidth/determinedDiff+1000/determinedDiff;//getAnimeDayDifference(profile.startDate,log.getEndDate());
+            if (day+1 <0) {
+
+                fillTextIfVisible(g,"< "+String.format("%.02f", day+1)+"d",60*zoomScale,yv+zoomScale*(gap/4));
+            } else {
+
+                fillTextIfVisible(g,String.format("%.02f", day+1)+"d >",60*zoomScale,yv+zoomScale*(gap/4));
+
+            }
 
 
 
 
+            g.setFill(Color.WHITE);
+
+            g.fillRect(zoomScale*1000+xv+startPointX*zoomScale
+                    ,yv+zoomScale*(gap/4)+zoomScale*1.5,
+                    zoomScale*1,
+                    10*zoomScale);
+            //  canvas.getGraphicsContext2D().fillText("air date: "+ log.getValue("series_start"), zoomScale*920+xv+startPointX*zoomScale,yv+zoomScale*(gap/4)+zoomScale*21);
+            fillTextIfVisible(g,"air date: "+ log.getValue("series_start"),zoomScale*920+xv+startPointX*zoomScale
+                    ,yv+zoomScale*(gap/4)+zoomScale*25);
+
+            if (endPointX != startPointX) {
+                g.fillRect(zoomScale * 1000 + xv + endPointX * zoomScale
+                        , yv + zoomScale * (gap / 4) + zoomScale * 1.5,
+                        zoomScale * 1,
+                        10 * zoomScale);
+                fillTextIfVisible(g,"end date: " + log.getValue("series_end"),
+                        zoomScale * 920 + xv + endPointX * zoomScale
+                        ,yv + zoomScale * (gap / 4) + zoomScale * 25);
+
+            }
 
 
-            if (!(xv > HelloApplication.CANVAS_WIDTH || yv > HelloApplication.CANVAS_HEIGHT || yv < 0)) {
-                if (minZoomImage <HelloApplication.zoomScale) {
+
+
+
+
+            if (!(xv > HelloApplication.getCanvasWidth() || yv > HelloApplication.getCanvasHeight() || yv < 0)) {
+                if (minZoomImage <zoomScale) {
                     if (!log.findingImage) {
 
                         log.findingImage = true;
@@ -236,41 +255,86 @@ public class MenuAnimeTimeline extends MenuElement{
                 }
                 if (log.image == null) {
                     g.setFill(Color.valueOf(log.getValue("color")));
-                    g.fillRect(0, yv-(gap/2)*HelloApplication.zoomScale, imageWidth*HelloApplication.zoomScale, HelloApplication.zoomScale*imageHeight);
+                    g.fillRect(0, yv-(gap/2)*zoomScale, imageWidth*zoomScale, zoomScale*imageHeight);
                 } else {
-                    g.drawImage(log.image, 0, yv-(gap/2)*HelloApplication.zoomScale, imageWidth*HelloApplication.zoomScale, HelloApplication.zoomScale*imageHeight);
+                    g.drawImage(log.image, 0, yv-(gap/2)*zoomScale, imageWidth*zoomScale, zoomScale*imageHeight);
                 }
                 g.setFill(Color.WHITE);
-                fillTextIfVisible(g,log.getDisplayString(),60*HelloApplication.zoomScale,yv-10*HelloApplication.zoomScale);
+                fillTextIfVisible(g,log.getDisplayString(),60*zoomScale,yv-10*zoomScale);
 
 
             }
         }
         g.setFill(Color.rgb(0,0,0,0.8));
-        g.fillRect(0,0,HelloApplication.CANVAS_WIDTH,Math.max(gap*HelloApplication.zoomScale/2,gap*HelloApplication.zoomScale/2+HelloApplication.y*HelloApplication.zoomScale));
+        g.fillRect(0,0,HelloApplication.getCanvasWidth(),Math.max(gap*zoomScale/2,gap*zoomScale/2+y*zoomScale));
         g.setFill(Color.WHITE);
-        g.setFont(Font.font("monospace", FontWeight.BOLD, FontPosture.REGULAR,18*HelloApplication.zoomScale));
-        g.fillText(profile.getTitleCard() ,Math.max(0,HelloApplication.x*HelloApplication.zoomScale),Math.max((gap/3.4)*HelloApplication.zoomScale,(gap/3.4)*HelloApplication.zoomScale+HelloApplication.y*HelloApplication.zoomScale));
+        g.setFont(Font.font("monospace", FontWeight.BOLD, FontPosture.REGULAR,18*zoomScale));
+        g.fillText(profile.getTitleCard() ,Math.max(0,x*zoomScale),Math.max((gap/3.4)*zoomScale,(gap/3.4)*zoomScale+y*zoomScale));
     }
 
     public void fillTextIfVisible(GraphicsContext g,String text, double x, double y) {
-        if (HelloApplication.zoomScale < zoom_Text_Visible) {
-           g.fillRect(x, y-HelloApplication.zoomScale, HelloApplication.zoomScale*5*text.split("\n")[0].length(), HelloApplication.zoomScale*6);
+        if (zoomScale < zoom_Text_Visible) {
+            g.fillRect(x, y-zoomScale*4, zoomScale*5*text.split("\n")[0].length(), zoomScale*6);
         } else {
-            if (!(x > HelloApplication.CANVAS_WIDTH || x < 0 || y > HelloApplication.CANVAS_HEIGHT || y < 0)) {
+            if (!(x > HelloApplication.getCanvasWidth() || x < 0 || y > HelloApplication.getCanvasHeight() || y < 0)) {
                 g.fillText(text, x, y);
             }
         }
     }
 
-    public double getAnimeDayDifference(long startdate, long enddate) {
+    public static double getAnimeDayDifference(long startdate, long enddate) {
         return (getRelativeValue(startdate, enddate))/determinedDiff;
     }
-    public double getRelativeValue(long start, long end) {
+    public static double getRelativeValue(long start, long end) {
         return ((end-start)/5000000.0);
     }
     @Override
-    public boolean interactElement(String info, boolean mouseDown, double zoom, double xp, double yp) {
+    public boolean interactElement(String info, boolean mouseDown, double xp, double yp) {
+        return false;
+    }
+
+    @Override
+    public boolean scroll(double delta, double xp, double yp) {
+        double zoomFactor = delta > 0 ? 1.1 : 0.9;
+        double distanceToCenterBeforeX = xp;
+        double distanceToCenterBeforeY = yp;
+
+        double distanceNowX = distanceToCenterBeforeX * zoomFactor;
+        double distanceNowY = distanceToCenterBeforeY * zoomFactor;
+        double xdiff = distanceNowX - distanceToCenterBeforeX;
+        double ydiff = distanceNowY - distanceToCenterBeforeY;
+
+        if (minZoom < zoomScale*zoomFactor) {
+            zoomScale=minZoom;
+        } else {
+            x -= (xdiff / zoomScale) / zoomFactor;
+            y -= (ydiff / zoomScale) / zoomFactor;
+            zoomScale=zoomScale*zoomFactor;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean drag(double xp, double yp) {
+        x = (dragXB-(dragX-xp)/zoomScale);
+        y = (dragYB-(dragY-yp)/zoomScale);
+        return false;
+    }
+
+    @Override
+    public boolean mouseRelease(double xp, double yp) {
+        dragX = xp;
+        dragY = yp;
+
+        return false;
+    }
+
+    @Override
+    public boolean mouseDown(double xp, double yp) {
+        dragX = xp;
+        dragY = yp;
+        dragXB = x;
+        dragYB=y;
         return false;
     }
 
