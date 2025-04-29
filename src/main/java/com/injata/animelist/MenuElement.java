@@ -6,12 +6,17 @@ public abstract class MenuElement {
 
     public double x;
     public double y;
+    public MenuElement parent;
+    public MenuElement focusedItem;
+
     public MenuElement(int x, int y) {
 
         this.x = x;
         this.y = y;
 
     }
+
+
 
 
 

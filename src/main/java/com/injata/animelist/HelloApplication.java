@@ -70,6 +70,8 @@ public class HelloApplication extends Application {
 
     public static boolean shouldUpdateFrame = true;
 
+    public static AnimeProfile profile;
+
 
 
     //for xml formatting, use https://malscraper.azurewebsites.net/ and select anilist list type and enter your username.
@@ -81,13 +83,13 @@ public class HelloApplication extends Application {
 
 
 
-    public static ArrayList<MenuElement> currentMenu;
+    public static MenuPage currentMenu;
 
     private static Stage mainStage;
 
     public static HashMap<String, String> textPool = new HashMap<>();
 
-    public static MenuElement focusedItem;
+
 
     @Override
     public void start(Stage stage) throws IOException {
@@ -192,18 +194,17 @@ public class HelloApplication extends Application {
         stage.setTitle("Anime list");
         Scene scene = new Scene(pane, CANVAS_WIDTH, CANVAS_HEIGHT);
         scene.setOnKeyPressed(keyEvent -> {
-            if (keyEvent.getCode() == KeyCode.F11) {
+            if (keyEvent.getCode()==KeyCode.F11) {
                 stage.setFullScreen(!stage.isFullScreen());
             } else if (keyEvent.getCode() == KeyCode.ESCAPE) {
                 stage.setFullScreen(false);
             }
-
-            focusedItem.interactElement(keyEvent.getCode()+"",false,0,0);
+            currentMenu.interactElement(keyEvent.getCode()+"",false,0,0);
             displayTimeline();
         });
         scene.setOnKeyReleased(keyEvent -> {
 
-            focusedItem.interactElement(keyEvent.getCode()+"",true,0,0);
+            currentMenu.interactElement(keyEvent.getCode()+"",true,0,0);
             displayTimeline();
         });
 
@@ -219,12 +220,12 @@ public class HelloApplication extends Application {
 
 
         canvas.setOnMouseClicked(mouseEvent -> {
-            interactMenu(true,mouseEvent.getX(),mouseEvent.getY());
+            currentMenu.interactElement("",true,mouseEvent.getX(),mouseEvent.getY());
             displayTimeline();
         });
         canvas.getGraphicsContext2D().setImageSmoothing(true);
         canvas.setOnMousePressed(dragEvent -> {
-            pressMenu(dragEvent.getX(),dragEvent.getY());
+            currentMenu.mouseDown(dragEvent.getX(),dragEvent.getY());
             displayTimeline();
         });
         canvas.setOnMouseDragged(dragEvent -> {
@@ -234,13 +235,13 @@ public class HelloApplication extends Application {
 
 
 
-            dragMenu(dragEvent.getX(),dragEvent.getY());
+            currentMenu.drag(dragEvent.getX(),dragEvent.getY());
 
             displayTimeline();
         });
 
         canvas.setOnMouseReleased(dragEvent -> {
-            releaseMenu(dragEvent.getX(),dragEvent.getY());
+            currentMenu.mouseRelease(dragEvent.getX(),dragEvent.getY());
 
 
         });
@@ -266,13 +267,13 @@ public class HelloApplication extends Application {
 
 
 
-            scrollMenu(scrollEvent.getDeltaY(),scrollEvent.getX(),scrollEvent.getY());
+            currentMenu.scroll(scrollEvent.getDeltaY(),scrollEvent.getX(),scrollEvent.getY());
 
             displayTimeline();
         });
 
         canvas.setOnMouseMoved( mouseEvent -> {
-            boolean update = interactMenu(false,mouseEvent.getX(),mouseEvent.getY());
+            boolean update = currentMenu.interactElement("",false,mouseEvent.getX(),mouseEvent.getY());
         //    if (dragEvent.getX() < 0) {
           //      moveMouse(new Point((int)CANVAS_WIDTH,(int)dragEvent.getY()));
 
@@ -297,72 +298,21 @@ public class HelloApplication extends Application {
 
 
 
-    public static void drawMenu() {
-        for (MenuElement element : currentMenu) {
-            element.drawElement(canvas.getGraphicsContext2D());
-
-       //     System.out.println("should have drawn " + element.getInfo());
-        }
-    }
-
-    public static boolean releaseMenu(double x, double y) {
-        boolean shouldUpdate = false;
-        for (MenuElement element : currentMenu) {
-           shouldUpdate = element.mouseRelease(x,y);
-
-       //     System.out.println("should have drawn " + element.getInfo());
-        }
-        return shouldUpdate;
-    }
-
-    public static boolean pressMenu(double x, double y) {
-        boolean shouldUpdate = false;
-        for (MenuElement element : currentMenu) {
-            shouldUpdate = element.mouseDown(x,y);
-
-            //     System.out.println("should have drawn " + element.getInfo());
-        }
-        return shouldUpdate;
-    }
-    public static boolean scrollMenu(double delta,double x, double y) {
-        boolean shouldUpdate = false;
-        for (MenuElement element : currentMenu) {
-            shouldUpdate = element.scroll(delta,x,y);
-
-            //     System.out.println("should have drawn " + element.getInfo());
-        }
-        return shouldUpdate;
-    }
-    public static boolean dragMenu(double x, double y) {
-        boolean shouldUpdate = false;
-        for (MenuElement element : currentMenu) {
-            shouldUpdate = element.drag(x,y);
-
-            //     System.out.println("should have drawn " + element.getInfo());
-        }
-        return shouldUpdate;
-    }
-
-    public static boolean interactMenu(boolean click,double x, double y) {
-        boolean shouldUpdate = false;
-        for (MenuElement element : currentMenu) {
-
-            shouldUpdate = element.interactElement("",click,x,y);
-            if (shouldUpdate) {
-                return true;
-            }
-            //     System.out.println("should have drawn " + element.getInfo());
-        }
-        return shouldUpdate;
-    }
 
     public static void actionButton(String action, MenuElement element) {
         System.out.println(action);
         String command = action.split(":")[0];
+
+        String input = action.split(":").length > 1 ? action.split(":")[1] : "";
         switch (command) {
             case "back" ->{
                 currentMenu = Menus.getFirstMenu();
            //    getDisplay(mainStage);
+            }
+            case "sort" ->{
+
+                profile.orderList(input, true);
+                //    getDisplay(mainStage);
             }
             case "timeline" ->{
                 updateTextPool(true,"Error", "fetching Anilist profile");
@@ -370,19 +320,20 @@ public class HelloApplication extends Application {
                 Thread thread = new Thread(new Runnable() {
                     public void run() {
                         MenuAnimeTimeline timeline= new MenuAnimeTimeline(0,0);
-                        String name = action.split(":").length > 1 ? action.split(":")[1] : "";
-                        String profileText = queryAnilistAPI(name);
+
+                        String profileText = queryAnilistAPI(input);
                         if (profileText.charAt(0) == '!') {
                             updateTextPool(true, "Error", profileText);
 
                         } else {
                             updateTextPool(true, "Error", "compiling information");
-
-                            timeline.profile = getAnimeProfileJson(profileText, name);
+                            profile = getAnimeProfileJson(profileText, input);
+                            timeline.profile = profile;
                             updateTextPool(true, "Error", "displaying graphics");
                             currentMenu = Menus.getTimelineMenu();
-                            currentMenu.add(timeline);
-                            timeline.profile.orderList("start", true);
+                            currentMenu.addElement(timeline);
+                            profile.orderList("start", true);
+                            textPool.put("sort","start");
                             updateTextPool(true, "Error", "");
                         }
 
@@ -434,7 +385,7 @@ public class HelloApplication extends Application {
             canvas.getGraphicsContext2D().fillRect(0, 0, HelloApplication.CANVAS_WIDTH, HelloApplication.CANVAS_HEIGHT);
 
 
-            drawMenu();
+        currentMenu.drawElement(canvas.getGraphicsContext2D());
      //   });
     }
 

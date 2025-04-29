@@ -35,7 +35,7 @@ public class MenuAnimeTimeline extends MenuElement{
 
     public static double determinedDiff = 17.28;
 
-    public static double imageWidth = 1.03*gap/1.45;
+    public static double imageWidth = gap*0.667;
     public static double imageHeight = gap*0.95;
 
     public static double zoom_Text_Visible = 0.5;

@@ -1,14 +1,15 @@
 package com.injata.animelist;
 
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.input.KeyCode;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
+
+import java.util.Objects;
 
 public class MenuTextField extends MenuElement{
     public static final int DEFAULT_WIDTH = 150;
     public static final int DEFAULT_HEIGHT = 75;
-
-    public boolean isSelected = false;
 
 
     public static final int TEXT_HEIGHT = 20;
@@ -59,7 +60,7 @@ public class MenuTextField extends MenuElement{
     public void drawElement(GraphicsContext g) {
 
 
-        if (HelloApplication.focusedItem ==this) {
+        if (parent !=null && parent.focusedItem ==this) {
             g.setFill(Color.rgb(255, 255, 255, 0.1));
 
         } else {
@@ -91,11 +92,14 @@ public class MenuTextField extends MenuElement{
 
         if (info.isEmpty()) {
             boolean prevHover = isHover;
+
             if (xp < x + width && xp > x && yp < y + height && yp > y) {
                 isHover = true;
+
                 if (releasing) {
+
                     // triggerAction();
-                    HelloApplication.focusedItem = this;
+                    this.parent.focusedItem = this;
                 }
             } else {
                 isHover = false;
@@ -137,6 +141,9 @@ public class MenuTextField extends MenuElement{
     }
 
     private void releaseText(String text) {
+        if (parent !=null && this.parent.focusedItem!=this) {
+            return;
+        }
         if (text.length() > 1) {
             switch (text) {
                 case "BACK_SPACE" -> {
@@ -152,13 +159,16 @@ public class MenuTextField extends MenuElement{
                     isShift = false;
                 }
                 default -> {
-                    System.out.println("unhandled key release input for " + text);
+                    //System.out.println("unhandled key release input for " + text);
                 }
             }
         }
     }
 
     private void typeText(String text) {
+        if (parent !=null && this.parent.focusedItem!=this) {
+            return;
+        }
         if (text.length() > 1) {
             switch (text) {
                 case "BACK_SPACE" -> {
@@ -178,7 +188,7 @@ public class MenuTextField extends MenuElement{
                     isShift = true;
                 }
                 default-> {
-                    System.out.println("unhandled key press input for " + text);
+                   // System.out.println("unhandled key press input for " + text);
                 }
             }
             return;
