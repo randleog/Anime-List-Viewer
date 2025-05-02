@@ -10,12 +10,22 @@ public class MenuPage extends MenuElement{
 
     private ArrayList<MenuElement> currentMenu;
 
-
+    private String visibleKey;
+    private String freezeKey;
+    private String key;
 
     public MenuPage(int x, int y) {
         super(x, y);
 
         currentMenu  = new ArrayList<>();
+    }
+
+    public MenuPage(String key,int x, int y) {
+        super(x, y);
+        this.key = key;
+        currentMenu  = new ArrayList<>();
+        this.visibleKey = key + "_visibility";
+        this.freezeKey = key + "_freeze";
     }
 
     public void addElement(MenuElement element) {
@@ -37,15 +47,25 @@ public class MenuPage extends MenuElement{
     }
     @Override
     public void drawElement(GraphicsContext g) {
-        for (MenuElement element : currentMenu) {
-            element.drawElement(g);
-
-            //     System.out.println("should have drawn " + element.getInfo());
+        if (!HelloApplication.textPool.getOrDefault(visibleKey,"1").equals("1")) {
+            return;
         }
+            for (MenuElement element : currentMenu) {
+                element.drawElement(g);
+
+                //     System.out.println("should have drawn " + element.getInfo());
+            }
+
     }
 
     @Override
     public boolean interactElement(String info, boolean mouseDown, double xp, double yp) {
+        if (!HelloApplication.textPool.getOrDefault(visibleKey,"1").equals("1")) {
+            return false;
+        }
+        if (!HelloApplication.textPool.getOrDefault(freezeKey,"1").equals("1")) {
+            return false;
+        }
         boolean shouldUpdate = false;
         for (MenuElement element : currentMenu) {
 
@@ -60,6 +80,12 @@ public class MenuPage extends MenuElement{
 
     @Override
     public boolean scroll(double delta, double xp, double yp) {
+        if (!HelloApplication.textPool.getOrDefault(visibleKey,"1").equals("1")) {
+            return false;
+        }
+        if (!HelloApplication.textPool.getOrDefault(freezeKey,"1").equals("1")) {
+            return false;
+        }
         boolean shouldUpdate = false;
         for (MenuElement element : currentMenu) {
             shouldUpdate = element.scroll(delta,xp,yp);
@@ -71,6 +97,12 @@ public class MenuPage extends MenuElement{
 
     @Override
     public boolean drag(double xp, double yp) {
+        if (!HelloApplication.textPool.getOrDefault(visibleKey,"1").equals("1")) {
+            return false;
+        }
+        if (!HelloApplication.textPool.getOrDefault(freezeKey,"1").equals("1")) {
+            return false;
+        }
         boolean shouldUpdate = false;
         for (MenuElement element : currentMenu) {
             shouldUpdate = element.drag(xp,yp);
@@ -82,6 +114,12 @@ public class MenuPage extends MenuElement{
 
     @Override
     public boolean mouseRelease(double xp, double yp) {
+        if (!HelloApplication.textPool.getOrDefault(visibleKey,"1").equals("1")) {
+            return false;
+        }
+        if (!HelloApplication.textPool.getOrDefault(freezeKey,"1").equals("1")) {
+            return false;
+        }
         boolean shouldUpdate = false;
         for (MenuElement element : currentMenu) {
             shouldUpdate = element.mouseRelease(xp,yp);
@@ -93,6 +131,12 @@ public class MenuPage extends MenuElement{
 
     @Override
     public boolean mouseDown(double xp, double yp) {
+        if (!HelloApplication.textPool.getOrDefault(visibleKey,"1").equals("1")) {
+            return false;
+        }
+        if (!HelloApplication.textPool.getOrDefault(freezeKey,"1").equals("1")) {
+            return false;
+        }
         boolean shouldUpdate = false;
         for (MenuElement element : currentMenu) {
             shouldUpdate = element.mouseDown(xp,yp);

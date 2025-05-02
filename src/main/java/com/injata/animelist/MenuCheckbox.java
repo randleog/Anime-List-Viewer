@@ -7,15 +7,20 @@ import javafx.scene.text.Font;
 public class MenuCheckbox extends MenuElement{
 
 
-    private int size;
     private String text;
     private boolean isHover = false;
     private String keyText;
+    private double baseWidth;
+    private final double fontSize = 30;
 
 
-    public MenuCheckbox(String text, String key,int size,int x, int y) {
-        super(x, y);
-        this.size = size;
+    public MenuCheckbox(String text, String key,int size,int x, int y, MenuDirections direction) {
+        super(x, y, direction);
+
+        this.height =size;
+        this.baseWidth =size;
+        this.width = ((text.length()+4)*fontSize/1.6666667)+size;
+
         this.text = text;
         this.keyText = key;
     }
@@ -23,27 +28,27 @@ public class MenuCheckbox extends MenuElement{
     @Override
     public void drawElement(GraphicsContext g) {
         if (isHover) {
-            g.setFill(Color.rgb(255, 255, 255, 0.1));
+            g.setFill(Color.rgb(255, 255, 255, 0.2));
 
         } else {
-            g.setFill(Color.rgb(0, 0, 0, 0.5));
+            g.setFill(Color.rgb(255, 255, 255, 0.1));
         }
-
-        double xpos = this.x;
-        double ypos = this.y;
-        g.fillRect(xpos,ypos,this.size,this.size);
-        g.setFont(Font.font("monospace",30));
+        cacheX = direction.getDrawX(this,g.getCanvas().getWidth());
+        cacheY = direction.getDrawY(this,g.getCanvas().getHeight());
+        g.fillRect(cacheX+width-baseWidth,cacheY,this.height,this.height);
+        g.setFont(Font.font("monospace",fontSize));
         g.setFill(Color.WHITE);
-        g.fillText(text, xpos+size+5, ypos-100);
+        g.fillText(text, cacheX, cacheY+fontSize);
+
         if (HelloApplication.textPool.getOrDefault(keyText,text).equals(text)) {
-            g.fillRect(xpos+5,ypos-5,this.size-10,this.size-10);
+            g.fillRoundRect(cacheX+this.height*0.10+width-baseWidth,cacheY+this.height*0.10,this.height*0.8,this.height*0.8, 10, 10);
         }
     }
 
     @Override
     public boolean interactElement(String info, boolean mouseDown, double xp, double yp) {
         boolean prevHover = isHover;
-        if (xp < x+size && xp > x && yp < y+size && yp > y) {
+        if (xp < cacheX+width && xp > cacheX && yp < height+cacheY && yp > cacheY) {
             isHover = true;
             if (mouseDown) {
                 HelloApplication.textPool.put(keyText,text);

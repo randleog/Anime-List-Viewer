@@ -121,6 +121,7 @@ public class AnimeProfile {
     }
 
     public void orderList(String order, boolean asc) {
+        System.out.println(asc);
         switch (order) {
             case "finish" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getEndDate) : Comparator.comparing(AnimeLog::getEndDate).reversed());
             case "start" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getStartDate) : Comparator.comparing(AnimeLog::getStartDate).reversed());

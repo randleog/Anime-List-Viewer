@@ -14,8 +14,7 @@ public class MenuTextField extends MenuElement{
 
     public static final int TEXT_HEIGHT = 20;
 
-    private int width;
-    private int height;
+
     private String promptText;
     private String text;
     private boolean isHover = false;
@@ -23,12 +22,17 @@ public class MenuTextField extends MenuElement{
 
     public String textPoolRef;
 
+    public double fontSize = 30;
+
+    private int baseWidth = 0;
+
     private boolean isShift = false;
     public MenuTextField(int x, int y) {
         super(x,y);
 
         this.width =DEFAULT_WIDTH;
         this.height =DEFAULT_HEIGHT;
+        this.baseWidth = DEFAULT_WIDTH;
         this.promptText="";
         this.text = "";
         keyText = "";
@@ -41,46 +45,56 @@ public class MenuTextField extends MenuElement{
         this.width =width;
         this.height =height;
         this.promptText=promptText;
+        this.baseWidth = width;
         this.text = text;
         this.keyText = text;
 
     }
-    public MenuTextField(String text, String promptText,String keyText,int x, int y, int width, int height) {
-        super(x,y);
+    public MenuTextField(String text, String promptText,String keyText,int x, int y, int width, int height,MenuDirections direction) {
+        super(x, y, direction);
 
         this.width =width;
         this.height =height;
         this.promptText=promptText;
         this.text = text;
         this.keyText = keyText;
+        this.baseWidth = width;
+    }
 
+    public double getFontSize() {
+        return this.fontSize;
     }
 
     @Override
     public void drawElement(GraphicsContext g) {
 
+        if (this.parent.focusedItem==this) {
+            g.setStroke(Color.WHITE);
+            g.strokeRect(cacheX,cacheY,this.width,this.height);
+        } else if (isHover) {
+                g.setFill(Color.rgb(255, 255, 255, 0.1));
 
-        if (parent !=null && parent.focusedItem ==this) {
-            g.setFill(Color.rgb(255, 255, 255, 0.1));
+            } else {
+                g.setFill(Color.rgb(0, 0, 0, 0.5));
+            }
 
-        } else {
-            g.setFill(Color.rgb(0, 0, 0, 0.5));
-        }
-        double xpos = this.x;
-        double ypos = this.y;
-        g.fillRect(xpos,ypos,this.width,this.height);
-        g.setFont(Font.font("monospace",30));
+
+        cacheX=this.direction.getDrawX(this,g.getCanvas().getWidth());
+        cacheY=this.direction.getDrawY(this,g.getCanvas().getHeight());
+
+        g.fillRect(cacheX,cacheY,this.width,this.height);
+        g.setFont(Font.font("monospace",fontSize));
         if (textPoolRef !=null) {
          //   System.out.println("should be printing rn " + HelloApplication.textPool.get(textPoolRef) + " + " + textPoolRef );
             g.setFill(Color.WHITE);
-            g.fillText(HelloApplication.textPool.getOrDefault(textPoolRef,""), xpos + TEXT_HEIGHT, ypos + height - TEXT_HEIGHT);
+            g.fillText(HelloApplication.textPool.getOrDefault(textPoolRef,""), cacheX + TEXT_HEIGHT, cacheY + height - TEXT_HEIGHT);
         } else {
             if (text.isEmpty()) {
                 g.setFill(Color.GRAY);
-                g.fillText(promptText, xpos + TEXT_HEIGHT, ypos + height - TEXT_HEIGHT);
+                g.fillText(promptText, cacheX + TEXT_HEIGHT, cacheY + height - TEXT_HEIGHT);
             } else {
                 g.setFill(Color.WHITE);
-                g.fillText(text, xpos + TEXT_HEIGHT, ypos + height - TEXT_HEIGHT);
+                g.fillText(text, cacheX + TEXT_HEIGHT, cacheY + height - TEXT_HEIGHT);
             }
         }
 
@@ -93,13 +107,18 @@ public class MenuTextField extends MenuElement{
         if (info.isEmpty()) {
             boolean prevHover = isHover;
 
-            if (xp < x + width && xp > x && yp < y + height && yp > y) {
+            if (xp < cacheX + width && xp > cacheX && yp < cacheY + height && yp > cacheY) {
                 isHover = true;
 
                 if (releasing) {
 
                     // triggerAction();
-                    this.parent.focusedItem = this;
+
+                    if (this.parent.focusedItem == this) {
+                        this.parent.focusedItem = null;
+                    } else {
+                        this.parent.focusedItem = this;
+                    }
                 }
             } else {
                 isHover = false;
@@ -110,6 +129,7 @@ public class MenuTextField extends MenuElement{
                 releaseText(info);
             }else {
                 typeText(info);
+                this.width = Math.max(this.baseWidth,((text.length()+4)*fontSize/1.6666667));
             }
 
 
@@ -221,21 +241,6 @@ public class MenuTextField extends MenuElement{
         return this.promptText;
     }
 
-    public void setWidth(int width) {
-        this.width = width;
-    }
-
-    public void setHeight(int height) {
-        this.height = height;
-    }
-
-    public int getWidth() {
-        return this.width;
-    }
-
-    public  int getHeight() {
-        return this.height;
-    }
 
     public String getInfo() {
         return text + " " + promptText;

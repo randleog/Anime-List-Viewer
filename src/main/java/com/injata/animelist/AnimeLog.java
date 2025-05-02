@@ -6,6 +6,7 @@ import javafx.scene.paint.Color;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -33,6 +34,23 @@ public class AnimeLog {
     public HashMap<String, String> animeValues;
 
     public boolean displayEN = true;
+
+    public static ArrayList<Integer[]> colors;
+
+
+
+    public static void loadColors () {
+        colors.add(new Integer[]{255,255,255});
+        colors.add(new Integer[]{255,255,255});
+        colors.add(new Integer[]{255,255,255});
+        colors.add(new Integer[]{255,255,255});
+        colors.add(new Integer[]{255,255,255});
+        colors.add(new Integer[]{255,255,255});
+        colors.add(new Integer[]{255,255,255});
+        colors.add(new Integer[]{255,255,255});
+        colors.add(new Integer[]{255,255,255});
+        colors.add(new Integer[]{255,255,255});
+    }
 
 
 
@@ -66,7 +84,8 @@ public class AnimeLog {
 
     public String getDisplayString() {
         return getValue("series_title" + (displayEN ? "_english" : "")) + "\n"
-                + getValue("my_score")+ "/10 " +  getValue("my_status") + " " + getValue("my_start_date")+ " to " + getValue("my_finish_date");
+                + getValue("my_score")+ "/10 " +  getValue("my_status") + " re-watch:" +rewatches + "\n"
+                + getValue("my_start_date")+ " to " + getValue("my_finish_date");
     }
 
 

@@ -4,44 +4,24 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
-public class MenuButton extends MenuElement{
+public class MenuToggleButton extends MenuElement{
     public static final int DEFAULT_WIDTH = 150;
     public static final int DEFAULT_HEIGHT = 75;
 
 
-    public static final int TEXT_HEIGHT = 20;
+    public double fontSize = 30;
+    public static final int TEXT_HEIGHT = 40;
+
 
     private String promptText;
     private String text;
     private boolean isHover = false;
     private String keyText;
 
-    private double fontSize = 30;
 
-    private double cacheX = 0;
-    private double cacheY = 0;
-    public MenuButton(int x, int y) {
-        super(x,y);
 
-        this.width =DEFAULT_WIDTH;
-        this.height =DEFAULT_HEIGHT;
-        this.promptText="";
-        this.text = "";
-        keyText = "";
 
-    }
-
-    public MenuButton(String text, String promptText,int x, int y, int width, int height) {
-        super(x,y);
-
-        this.width =width;
-        this.height =height;
-        this.promptText=promptText;
-        this.text = text;
-        this.keyText = text;
-
-    }
-    public MenuButton(String text, String promptText,String keyText,int x, int y, int width, int height, MenuDirections direction) {
+    public MenuToggleButton(String text, String promptText,String keyText,int x, int y, int width, int height, MenuDirections direction) {
         super(x,y,direction);
 
         this.width =width;
@@ -62,11 +42,11 @@ public class MenuButton extends MenuElement{
         } else {
             g.setFill(Color.rgb(0, 0, 0, 0.5));
         }
-        double xpos = direction.getDrawX(this, g.getCanvas().getWidth());
-        double ypos = direction.getDrawY(this,g.getCanvas().getHeight());
-        cacheX=xpos;
-        cacheY=ypos;
-        g.fillRect(xpos,ypos,this.width,this.height);
+
+
+        cacheX=direction.getDrawX(this, g.getCanvas().getWidth());
+        cacheY=direction.getDrawY(this,g.getCanvas().getHeight());
+        g.fillRect(cacheX,cacheY,this.width,this.height);
         g.setFont(Font.font("monospace",fontSize));
         if (text.isEmpty()) {
             g.setFill(Color.GRAY);
@@ -76,16 +56,18 @@ public class MenuButton extends MenuElement{
             g.fillText(text, cacheX+height/2, cacheY+height/1.5);
         }
 
-
+        if (HelloApplication.textPool.getOrDefault(keyText,"1").equals("1")) {
+            g.setStroke(Color.WHITE);
+            g.strokeRect(cacheX,cacheY,this.width,this.height);
+        }
 
     }
 
     @Override
     public boolean interactElement(String info,boolean mouseDown, double xp, double yp) {
         boolean prevHover = isHover;
-        double xpos = cacheX;
-        double ypos = cacheY;
-        if (xp < xpos+width && xp > xpos && yp < ypos+height && yp > ypos) {
+
+        if (xp < cacheX+width && xp > cacheX && yp < cacheY+height && yp > cacheY) {
             isHover = true;
             if (mouseDown) {
                 triggerAction();
@@ -119,7 +101,10 @@ public class MenuButton extends MenuElement{
     }
 
     public void triggerAction() {
-        HelloApplication.actionButton(keyText, this);
+        HelloApplication.textPool.put(keyText,HelloApplication.textPool.getOrDefault(keyText,"1").equals("1") ? "0" : "1");
+        System.out.println("set " + keyText + " to " + HelloApplication.textPool.get(keyText));
+
+        HelloApplication.actionButton(keyText,this);
     }
 
 
@@ -138,7 +123,6 @@ public class MenuButton extends MenuElement{
     public String getPromptText(String promptText) {
         return this.promptText;
     }
-
 
 
 

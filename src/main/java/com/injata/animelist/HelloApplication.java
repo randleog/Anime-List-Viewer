@@ -25,14 +25,9 @@ import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
-import java.awt.Robot;
-import java.awt.GraphicsDevice;
-import java.awt.GraphicsConfiguration;
-import java.awt.Rectangle;
-import java.awt.AWTException;
-import java.awt.Cursor;
+import java.awt.Toolkit;
 import java.awt.GraphicsEnvironment;
-import java.awt.Point;
+import java.awt.GraphicsDevice;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -45,6 +40,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 
+//todo:
+//interpolate position when sorting
+//score colors
 public class HelloApplication extends Application {
 
 
@@ -95,10 +93,10 @@ public class HelloApplication extends Application {
     public void start(Stage stage) throws IOException {
 
         launchTime = System.currentTimeMillis();
-     //   GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-      //  CANVAS_WIDTH= Toolkit.getDefaultToolkit().getScreenSize().width;
-        //CANVAS_HEIGHT= Toolkit.getDefaultToolkit().getScreenSize().height;
-     //   System.out.println( Toolkit.getDefaultToolkit().getScreenSize().width);
+           GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+        CANVAS_WIDTH= Toolkit.getDefaultToolkit().getScreenSize().width;
+        CANVAS_HEIGHT= Toolkit.getDefaultToolkit().getScreenSize().height;
+        System.out.println( Toolkit.getDefaultToolkit().getScreenSize().width);
 
         mainStage = stage;
 
@@ -300,7 +298,7 @@ public class HelloApplication extends Application {
 
 
     public static void actionButton(String action, MenuElement element) {
-        System.out.println(action);
+
         String command = action.split(":")[0];
 
         String input = action.split(":").length > 1 ? action.split(":")[1] : "";
@@ -309,9 +307,14 @@ public class HelloApplication extends Application {
                 currentMenu = Menus.getFirstMenu();
            //    getDisplay(mainStage);
             }
+            case "sort_reverse" ->{
+                profile.orderList(textPool.getOrDefault("sort","start"),  textPool.getOrDefault("sort_reverse","1").equals("1"));
+           //     System.out.println(textPool.getOrDefault("sort_reverse","1").equals("1"));
+                //    getDisplay(mainStage);
+            }
             case "sort" ->{
 
-                profile.orderList(input, true);
+                profile.orderList(input,  textPool.getOrDefault("sort_reverse","1").equals("1"));
                 //    getDisplay(mainStage);
             }
             case "timeline" ->{
@@ -319,7 +322,7 @@ public class HelloApplication extends Application {
 
                 Thread thread = new Thread(new Runnable() {
                     public void run() {
-                        MenuAnimeTimeline timeline= new MenuAnimeTimeline(0,0);
+                        MenuAnimeTimeline timeline= new MenuAnimeTimeline(0,0, MenuDirections.TOP_LEFT);
 
                         String profileText = queryAnilistAPI(input);
                         if (profileText.charAt(0) == '!') {
@@ -332,7 +335,7 @@ public class HelloApplication extends Application {
                             updateTextPool(true, "Error", "displaying graphics");
                             currentMenu = Menus.getTimelineMenu();
                             currentMenu.addElement(timeline);
-                            profile.orderList("start", true);
+                            profile.orderList("start", textPool.getOrDefault("sort_reverse","1").equals("1"));
                             textPool.put("sort","start");
                             updateTextPool(true, "Error", "");
                         }
@@ -349,7 +352,9 @@ public class HelloApplication extends Application {
 
                 //    getDisplay(mainStage);
             }
-            default -> System.out.println("unhandled button action");
+            default ->{
+
+            }
         }
     }
 

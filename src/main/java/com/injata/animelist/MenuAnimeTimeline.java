@@ -53,8 +53,8 @@ public class MenuAnimeTimeline extends MenuElement{
 
     public double zoomScale;
 
-    public MenuAnimeTimeline(int x, int y) {
-        super(x, y);
+    public MenuAnimeTimeline(int x, int y, MenuDirections direction) {
+        super(x, y, direction);
     }
 
 
@@ -91,14 +91,15 @@ public class MenuAnimeTimeline extends MenuElement{
 
 
         //now line
-        g.setLineWidth(Math.max(0.5,zoomScale*1.1));
 
-        g.setLineDashes(1);
+
+
         g.setStroke(Color.WHITE);
-        g.strokeLine(zoomScale*1000+xv+now*zoomScale
+        g.fillRect(zoomScale*1000+xv+now*zoomScale
                 ,0,
-                zoomScale*1000+xv+now*zoomScale,
+                zoomScale*3,
                 g.getCanvas().getHeight());
+
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         Date date = new Date(currentTime);
@@ -124,9 +125,9 @@ public class MenuAnimeTimeline extends MenuElement{
                 throw new RuntimeException(e);
             }
             double yearTime = getRelativeValue(profile.startDate,yearDate.getTime());
-            g.strokeLine(zoomScale*1000+xv+yearTime*zoomScale
+            g.fillRect(zoomScale*1000+xv+yearTime*zoomScale
                     ,0,
-                    zoomScale*1000+xv+yearTime*zoomScale,
+                    zoomScale*2,
                     g.getCanvas().getHeight());
 
             fillTextIfVisible(g,(startYear+i)+"-01-01",zoomScale * 1010 + xv + yearTime * zoomScale, ((gap) * zoomScale));
@@ -265,11 +266,11 @@ public class MenuAnimeTimeline extends MenuElement{
 
             }
         }
-        g.setFill(Color.rgb(0,0,0,0.8));
-        g.fillRect(0,0,HelloApplication.getCanvasWidth(),Math.max(gap*zoomScale/2,gap*zoomScale/2+y*zoomScale));
+   //     g.setFill(Color.rgb(0,0,0,0.8));
+      //  g.fillRect(0,0,HelloApplication.getCanvasWidth(),Math.max(gap*zoomScale/2,gap*zoomScale/2+y*zoomScale));
         g.setFill(Color.WHITE);
         g.setFont(Font.font("monospace", FontWeight.BOLD, FontPosture.REGULAR,18*zoomScale));
-        g.fillText(profile.getTitleCard() ,Math.max(0,x*zoomScale),Math.max((gap/3.4)*zoomScale,(gap/3.4)*zoomScale+y*zoomScale));
+        g.fillText(profile.getTitleCard() ,Math.max(0,x*zoomScale),(gap/3.4)*zoomScale+y*zoomScale);
     }
 
     public void fillTextIfVisible(GraphicsContext g,String text, double x, double y) {
