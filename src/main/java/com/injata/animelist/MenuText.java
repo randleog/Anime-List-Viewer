@@ -22,9 +22,10 @@ public class MenuText extends MenuElement {
 
     @Override
     public void drawElement(GraphicsContext g) {
-        cacheX=direction.getDrawX(this, g.getCanvas().getWidth());
-        cacheY=direction.getDrawY(this,g.getCanvas().getHeight());
-
+        cacheX=getVisibleX();
+        cacheY=getVisibleY();
+     //   System.out.println(getVisibleX());
+      //  System.out.println(getVisibleY());
         g.setFont(Font.font("monospace",fontSize));
         g.fillText(text, cacheX, cacheY);
     }
@@ -56,6 +57,6 @@ public class MenuText extends MenuElement {
 
     @Override
     public String getInfo() {
-        return "";
+        return "text";
     }
 }

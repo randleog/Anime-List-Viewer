@@ -79,8 +79,9 @@ public class MenuTextField extends MenuElement{
             }
 
 
-        cacheX=this.direction.getDrawX(this,g.getCanvas().getWidth());
-        cacheY=this.direction.getDrawY(this,g.getCanvas().getHeight());
+        cacheX=getVisibleX();
+        cacheY=getVisibleY();
+
 
         g.fillRect(cacheX,cacheY,this.width,this.height);
         g.setFont(Font.font("monospace",fontSize));
@@ -115,7 +116,7 @@ public class MenuTextField extends MenuElement{
                     // triggerAction();
 
                     if (this.parent.focusedItem == this) {
-                        this.parent.focusedItem = null;
+                   //     this.parent.focusedItem = null;
                     } else {
                         this.parent.focusedItem = this;
                     }
@@ -243,7 +244,7 @@ public class MenuTextField extends MenuElement{
 
 
     public String getInfo() {
-        return text + " " + promptText;
+        return text + " " + promptText + " menutext";
     }
 
 

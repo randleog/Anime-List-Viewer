@@ -12,6 +12,8 @@ public class AnimeProfile {
 
     private ArrayList<AnimeLog> animes;
 
+    private ArrayList<AnimeLog> bufferAnimes;
+
     public long startDate = Long.MAX_VALUE;
 
     public long endDate = 0;
@@ -26,9 +28,8 @@ public class AnimeProfile {
 
     public void addAnime(AnimeLog anime) {
 
-        if ((anime.animestatus==AnimeLog.status.PLANNING&& !includePlanning) || (!includePausedDropped && (anime.animestatus==AnimeLog.status.PAUSED || anime.animestatus==AnimeLog.status.DROPPED ))) {
-            return;
-        }
+
+
 
         animes.add(anime);
         long startDateValue = anime.startDate;
@@ -39,6 +40,20 @@ public class AnimeProfile {
         long endDateValue = anime.getEndDate();
         if (endDateValue > endDate && !(endDateValue <= 0) && endDateValue !=Long.MAX_VALUE) {
             endDate = endDateValue;
+        }
+    }
+
+
+    public void applyFilter() {
+        if (bufferAnimes.size() < animes.size()) {
+            bufferAnimes = new ArrayList<>();
+            bufferAnimes.addAll(animes);
+        }
+        animes = new ArrayList<>();
+        for (AnimeLog anime : bufferAnimes) {
+            if (!HelloApplication.textPool.getOrDefault("includestatus_"+anime.animestatus.textValue(),"1").equals("0")) {
+                animes.add(anime);
+            }
         }
     }
 
@@ -59,12 +74,14 @@ public class AnimeProfile {
     }
 
     public AnimeProfile() {
+        bufferAnimes= new ArrayList<>();
         profileValues = new HashMap<>();
         animes = new ArrayList<>();
         lists = new ArrayList<>();
     }
     public AnimeProfile(String... values) {
         profileValues = new HashMap<>();
+        bufferAnimes= new ArrayList<>();
         lists = new ArrayList<>();
         animes = new ArrayList<>();
     }
@@ -121,7 +138,8 @@ public class AnimeProfile {
     }
 
     public void orderList(String order, boolean asc) {
-        System.out.println(asc);
+
+        applyFilter();
         switch (order) {
             case "finish" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getEndDate) : Comparator.comparing(AnimeLog::getEndDate).reversed());
             case "start" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getStartDate) : Comparator.comparing(AnimeLog::getStartDate).reversed());
@@ -131,6 +149,8 @@ public class AnimeProfile {
             case "rewatches" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getRewatches): Comparator.comparing(AnimeLog::getRewatches).reversed());
             case "pace" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getWatchPace): Comparator.comparing(AnimeLog::getWatchPace).reversed());
         }
+
+
     }
 
     public List<AnimeLog> getList() {

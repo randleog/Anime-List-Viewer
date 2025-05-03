@@ -20,6 +20,7 @@ public abstract class MenuElement {
     protected double cacheY = 0;
 
     public MenuElement(int x, int y) {
+
         this.direction = MenuDirections.TOP_LEFT;
         this.x = x;
         this.y = y;
@@ -27,13 +28,49 @@ public abstract class MenuElement {
     }
 
     public MenuElement(int x, int y, MenuDirections direction) {
+
         this.direction = direction;
         this.x = x;
         this.y = y;
 
     }
 
+    public double getVisibleX() {
+        double offset =0;
+        if (parent!=null) {
+            offset =parent.getLogicalX();
+        }
+        return direction.getDrawX(this,HelloApplication.getCanvasWidth())+offset;
+    }
 
+    public double getVisibleHeight() {
+        return height;
+    }
+
+    public double getVisibleY() {
+        double offset =0;
+        if (parent!=null) {
+            offset =parent.getLogicalY();
+        }
+        return direction.getDrawY(this,HelloApplication.getCanvasHeight())+offset;
+    }
+
+
+    public double getLogicalX() {
+        double offset =0;
+        if (parent!=null) {
+            offset =parent.getLogicalX();
+        }
+        return direction.getLogicalX(this,HelloApplication.getCanvasWidth())+offset;
+    }
+
+    public double getLogicalY() {
+        double offset =0;
+        if (parent!=null) {
+        //    offset =parent.getLogicalY();
+        }
+        return direction.getLogicalY(this,HelloApplication.getCanvasHeight())+offset;
+    }
 
     public void setX(int x) {
         this.x = x;

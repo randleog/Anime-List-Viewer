@@ -33,8 +33,8 @@ public class MenuCheckbox extends MenuElement{
         } else {
             g.setFill(Color.rgb(255, 255, 255, 0.1));
         }
-        cacheX = direction.getDrawX(this,g.getCanvas().getWidth());
-        cacheY = direction.getDrawY(this,g.getCanvas().getHeight());
+        cacheX=getVisibleX();
+        cacheY=getVisibleY();
         g.fillRect(cacheX+width-baseWidth,cacheY,this.height,this.height);
         g.setFont(Font.font("monospace",fontSize));
         g.setFill(Color.WHITE);
@@ -84,6 +84,6 @@ public class MenuCheckbox extends MenuElement{
 
     @Override
     public String getInfo() {
-        return "";
+        return "checkbox";
     }
 }

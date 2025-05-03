@@ -319,6 +319,7 @@ public class MenuAnimeTimeline extends MenuElement{
     public boolean drag(double xp, double yp) {
         x = (dragXB-(dragX-xp)/zoomScale);
         y = (dragYB-(dragY-yp)/zoomScale);
+
         return false;
     }
 
@@ -341,6 +342,6 @@ public class MenuAnimeTimeline extends MenuElement{
 
     @Override
     public String getInfo() {
-        return "";
+        return "timeline";
     }
 }

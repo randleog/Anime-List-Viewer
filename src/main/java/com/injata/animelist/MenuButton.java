@@ -14,44 +14,30 @@ public class MenuButton extends MenuElement{
     private String promptText;
     private String text;
     private boolean isHover = false;
-    private String keyText;
+    private String[] actions;
 
     private double fontSize = 30;
 
     private double cacheX = 0;
     private double cacheY = 0;
-    public MenuButton(int x, int y) {
-        super(x,y);
 
-        this.width =DEFAULT_WIDTH;
-        this.height =DEFAULT_HEIGHT;
-        this.promptText="";
-        this.text = "";
-        keyText = "";
+    private boolean shouldFocus;
 
-    }
 
-    public MenuButton(String text, String promptText,int x, int y, int width, int height) {
-        super(x,y);
 
-        this.width =width;
-        this.height =height;
-        this.promptText=promptText;
-        this.text = text;
-        this.keyText = text;
-
-    }
-    public MenuButton(String text, String promptText,String keyText,int x, int y, int width, int height, MenuDirections direction) {
+    public MenuButton(String text, String promptText,int x, int y, int width, int height, MenuDirections direction, boolean shouldFocus, String... actions) {
         super(x,y,direction);
-
+        this.shouldFocus = shouldFocus;
         this.width =width;
         this.width = Math.max(((text.length()+4)*fontSize/1.6666667),this.width);
         this.height =height;
         this.promptText=promptText;
         this.text = text;
-        this.keyText = keyText;
+        this.actions = actions;
 
     }
+
+
 
     @Override
     public void drawElement(GraphicsContext g) {
@@ -62,8 +48,8 @@ public class MenuButton extends MenuElement{
         } else {
             g.setFill(Color.rgb(0, 0, 0, 0.5));
         }
-        double xpos = direction.getDrawX(this, g.getCanvas().getWidth());
-        double ypos = direction.getDrawY(this,g.getCanvas().getHeight());
+        double xpos = getVisibleX();
+        double ypos = getVisibleY();
         cacheX=xpos;
         cacheY=ypos;
         g.fillRect(xpos,ypos,this.width,this.height);
@@ -77,7 +63,10 @@ public class MenuButton extends MenuElement{
         }
 
 
-
+        if (shouldFocus) {
+            g.setStroke(Color.WHITE);
+            g.strokeRect(cacheX,cacheY,this.width,this.height);
+        }
     }
 
     @Override
@@ -119,7 +108,23 @@ public class MenuButton extends MenuElement{
     }
 
     public void triggerAction() {
-        HelloApplication.actionButton(keyText, this);
+
+        for (String action : actions) {
+            if (action.contains("!")) {
+                action = action.replace("!","");
+                HelloApplication.textPool.put(action,HelloApplication.textPool.getOrDefault(action,"1").equals("1") ? "0" : "1");
+                shouldFocus=!shouldFocus;
+            } else if (action.contains("?")) {
+                action = action.replace("?","");
+                HelloApplication.textPool.put(action.split(":")[0],action.split(":")[1]);
+                HelloApplication.actionButton(action.split(":")[0]+":"+action.split(":")[1],this);
+                shouldFocus=!shouldFocus;
+            } else {
+                HelloApplication.actionButton(action, this);
+
+            }
+        }
+
     }
 
 
@@ -143,7 +148,7 @@ public class MenuButton extends MenuElement{
 
 
     public String getInfo() {
-        return text + " " + promptText;
+        return text + " " + promptText + " menubutton";
     }
 
 

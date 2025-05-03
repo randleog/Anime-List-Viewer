@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import eu.hansolo.tilesfx.addons.CanvasSpinner;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
@@ -64,6 +65,8 @@ public class HelloApplication extends Application {
 
     public static boolean initialise_zoom = false;
 
+
+
     public static long launchTime;
 
     public static boolean shouldUpdateFrame = true;
@@ -72,13 +75,10 @@ public class HelloApplication extends Application {
 
 
 
-    //for xml formatting, use https://malscraper.azurewebsites.net/ and select anilist list type and enter your username.
 
+    //should add "sequel mode" instead of individual shows it shows the timeline of an anime title including later seasons and ova as part of one timeline log.
 
-
-    //potential idea: make it a generalised approach for the display, with a class type of things which are drawn in a list, instead of manually drawing the same lines each time.
-    //this way i can simply switch out the elements being drawn to the canvas instead of using a whole different method on the display
-
+    // should add x and y axis selection options, and better grouping options (group by year of release instead of by anime title for example)
 
 
     public static MenuPage currentMenu;
@@ -91,6 +91,9 @@ public class HelloApplication extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
+        AnimeLog.loadColors();
+
+
 
         launchTime = System.currentTimeMillis();
            GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
@@ -152,6 +155,9 @@ public class HelloApplication extends Application {
     private static void getDisplay(Stage stage) {
      //   currentMenu = Menus.getTimelineMenu();
         currentMenu = Menus.getFirstMenu();
+        currentMenu.setWidth(CANVAS_WIDTH);
+        currentMenu.setHeight(CANVAS_HEIGHT);
+        currentMenu.height=CANVAS_HEIGHT;
 
         HBox pane = new HBox();
 
@@ -163,20 +169,27 @@ public class HelloApplication extends Application {
 
 
 
+
         stage.widthProperty().addListener(new ChangeListener<Number>() {
             @Override public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneWidth, Number newSceneWidth) {
                 CANVAS_WIDTH = newSceneWidth.intValue();
                 canvas.setWidth(CANVAS_WIDTH);
+               currentMenu.setWidth(CANVAS_WIDTH);
                 displayTimeline();
+
+
             }
         });
 
         stage.heightProperty().addListener(new ChangeListener<Number>() {
             @Override public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneHeight, Number newSceneHeight) {
                 CANVAS_HEIGHT = newSceneHeight.intValue();
-                System.out.println("set canvas height to " + CANVAS_HEIGHT);
+
                 canvas.setHeight(CANVAS_HEIGHT);
+
+                currentMenu.setHeight(CANVAS_HEIGHT);
                 displayTimeline();
+
             }
         });
         pane.setSpacing(0);
@@ -307,15 +320,14 @@ public class HelloApplication extends Application {
                 currentMenu = Menus.getFirstMenu();
            //    getDisplay(mainStage);
             }
-            case "sort_reverse" ->{
-                profile.orderList(textPool.getOrDefault("sort","start"),  textPool.getOrDefault("sort_reverse","1").equals("1"));
-           //     System.out.println(textPool.getOrDefault("sort_reverse","1").equals("1"));
-                //    getDisplay(mainStage);
-            }
             case "sort" ->{
 
                 profile.orderList(input,  textPool.getOrDefault("sort_reverse","1").equals("1"));
                 //    getDisplay(mainStage);
+            }
+            case "updateList" ->{
+
+                profile.orderList(textPool.getOrDefault("sort","start"),  textPool.getOrDefault("sort_reverse","1").equals("1"));
             }
             case "timeline" ->{
                 updateTextPool(true,"Error", "fetching Anilist profile");
@@ -323,6 +335,7 @@ public class HelloApplication extends Application {
                 Thread thread = new Thread(new Runnable() {
                     public void run() {
                         MenuAnimeTimeline timeline= new MenuAnimeTimeline(0,0, MenuDirections.TOP_LEFT);
+                        timeline.height =Integer.MAX_VALUE;
 
                         String profileText = queryAnilistAPI(input);
                         if (profileText.charAt(0) == '!') {

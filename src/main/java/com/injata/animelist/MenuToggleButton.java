@@ -44,8 +44,8 @@ public class MenuToggleButton extends MenuElement{
         }
 
 
-        cacheX=direction.getDrawX(this, g.getCanvas().getWidth());
-        cacheY=direction.getDrawY(this,g.getCanvas().getHeight());
+        cacheX=getVisibleX();
+        cacheY=getVisibleY();
         g.fillRect(cacheX,cacheY,this.width,this.height);
         g.setFont(Font.font("monospace",fontSize));
         if (text.isEmpty()) {
@@ -127,7 +127,7 @@ public class MenuToggleButton extends MenuElement{
 
 
     public String getInfo() {
-        return text + " " + promptText;
+        return text + " " + promptText + " togglebutton";
     }
 
 

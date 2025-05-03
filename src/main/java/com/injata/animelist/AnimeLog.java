@@ -1,6 +1,7 @@
 package com.injata.animelist;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
 
@@ -10,7 +11,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
-public class AnimeLog {
+public class AnimeLog extends MenuElement{
 
 
     public int episodes;
@@ -37,19 +38,54 @@ public class AnimeLog {
 
     public static ArrayList<Integer[]> colors;
 
+    public Color color;
+
 
 
     public static void loadColors () {
-        colors.add(new Integer[]{255,255,255});
-        colors.add(new Integer[]{255,255,255});
-        colors.add(new Integer[]{255,255,255});
-        colors.add(new Integer[]{255,255,255});
-        colors.add(new Integer[]{255,255,255});
-        colors.add(new Integer[]{255,255,255});
-        colors.add(new Integer[]{255,255,255});
-        colors.add(new Integer[]{255,255,255});
-        colors.add(new Integer[]{255,255,255});
-        colors.add(new Integer[]{255,255,255});
+        colors = new ArrayList<>();
+
+        colors.add(new Integer[]{0,0,0});
+        colors.add(new Integer[]{30,0,0});
+        colors.add(new Integer[]{55,0,0});
+        colors.add(new Integer[]{80,0,0});
+        colors.add(new Integer[]{105,0,0});
+        colors.add(new Integer[]{130,0,0});
+        colors.add(new Integer[]{180,0,0});
+        colors.add(new Integer[]{255,30,0});
+        colors.add(new Integer[]{255,70,0});
+        colors.add(new Integer[]{250,80,0});
+        colors.add(new Integer[]{240,100,0});
+        colors.add(new Integer[]{230,115,0});
+        colors.add(new Integer[]{210,135,0});
+        colors.add(new Integer[]{190,150,0});
+        colors.add(new Integer[]{180,180,0});
+        colors.add(new Integer[]{170,180,0});
+        colors.add(new Integer[]{160,190,0});
+        colors.add(new Integer[]{150,200,0});
+        colors.add(new Integer[]{0,255,0});
+        colors.add(new Integer[]{0,255,180});
+        colors.add(new Integer[]{0,255,320});
+
+    }
+
+    public static Color getColorFromScore (double score){
+
+
+
+        double v=Math.ceil(((score/10.0)*colors.size())*10.0)/10.0-1;
+
+        Integer[] rgb1 = colors.get((int)(v));
+        Integer[] rgb2 = colors.get((int)Math.ceil(v));
+
+
+
+
+        double rgb2Fraction = ((v)-(int)(v));
+        double rgb1Fraction = 1-((v)-(int)(v));
+  //      System.out.println(v + " r:"+((int)Math.min(255,(rgb1[0]*rgb1Fraction+rgb2[0]*rgb2Fraction)))+" g:"+Math.min(255,(int)(rgb1[1]*rgb1Fraction+rgb2[1]*rgb2Fraction))+ " b:"+Math.min(255,(int)(rgb1[2]*rgb1Fraction+rgb2[2]*rgb2Fraction)));
+
+        return Color.rgb((int)Math.min(255,(rgb1[0]*rgb1Fraction+rgb2[0]*rgb2Fraction)),Math.min(255,(int)(rgb1[1]*rgb1Fraction+rgb2[1]*rgb2Fraction)),Math.min(255,(int)(rgb1[2]*rgb1Fraction+rgb2[2]*rgb2Fraction)));
     }
 
 
@@ -60,17 +96,77 @@ public class AnimeLog {
 
     public status animestatus;
 
+
+
+    @Override
+    public void drawElement(GraphicsContext g) {
+
+    }
+
+    @Override
+    public boolean interactElement(String info, boolean mouseDown, double xp, double yp) {
+        return false;
+    }
+
+    @Override
+    public boolean scroll(double delta, double xp, double yp) {
+        return false;
+    }
+
+    @Override
+    public boolean drag(double xp, double yp) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseRelease(double xp, double yp) {
+        return false;
+    }
+
+    @Override
+    public boolean mouseDown(double xp, double yp) {
+        return false;
+    }
+
+    @Override
+    public String getInfo() {
+        return "";
+    }
+
     public enum status {
-        COMPLETED,
-        DROPPED,
-        PAUSED,
-        PLANNING,
-        CURRENT
+        COMPLETED {
+            public String textValue() {
+                return "COMPLETED";
+            }
+        },
+        DROPPED {
+            public String textValue() {
+                return "DROPPED";
+            }
+        },
+        PAUSED {
+            public String textValue() {
+                return "PAUSED";
+            }
+        },
+        PLANNING {
+            public String textValue() {
+                return "PLANNING";
+            }
+        },
+        CURRENT {
+            public String textValue() {
+                return "CURRENT";
+            }
+        };
+
+        public abstract String textValue();
 
     }
 
 
     public AnimeLog() {
+        super(0,0);
         startDate = 0;
         endDate = 0;
         score =0;
@@ -155,6 +251,8 @@ public class AnimeLog {
         }
     }
     public long getEndDate() {
+
+
         if (endDate > 0) {
             return endDate;
         }
@@ -203,39 +301,17 @@ public class AnimeLog {
     }
 
     public Color getScoreColor() {
-        int v = getScore();
+        if (score==0) {
+            return Color.GREY;
+        }
 
-     //   if (getValue("my_status").equals("DROPPED")) {
-      //      return Color.DARKGRAY;
+        //if (this.animestatus==status.PAUSED || this.animestatus==status.DROPPED || ) {
+
      //   }
 
-        //red, orange, yellow, green, blue, pink
-        if (v==0) {
-            return Color.GRAY;
-        }
-        if (v <40) {
 
+        return getColorFromScore(score);
 
-
-            return Color.rgb(v*5, 0, 0, 1);
-
-        }
-
-        if (v <=65) {
-
-
-
-            return Color.rgb(255, (int)((Math.max(v-30,0))*7.28), 0, 1);
-
-        }
-
-        if (v <= 100) {
-            return Color.rgb(0, 255, (int)((v-65)*7.28), 1);
-        }
-      //  if (v <= 100) {
-      //      return Color.rgb(255, 0, 255, 1);
-      //  }
-        return Color.WHITE;
     }
     public int getValueInt(String type) {
         return switch(type) {
