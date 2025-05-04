@@ -1,5 +1,6 @@
 package com.injata.animelist;
 
+import java.awt.desktop.SystemHotkey;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -44,17 +45,24 @@ public class AnimeProfile {
     }
 
 
-    public void applyFilter() {
+    public void applyFilter(String order, boolean asc) {
         if (bufferAnimes.size() < animes.size()) {
             bufferAnimes = new ArrayList<>();
             bufferAnimes.addAll(animes);
         }
+        orderList(order, asc, bufferAnimes);
         animes = new ArrayList<>();
+        int y=0;
         for (AnimeLog anime : bufferAnimes) {
             if (!HelloApplication.textPool.getOrDefault("includestatus_"+anime.animestatus.textValue(),"1").equals("0")) {
+                y+= (int) MenuAnimeTimeline.gap;
+             //   System.out.println("diff: " + anime.y + " " + y);
+                anime.updateOrder(y);
+
                 animes.add(anime);
             }
         }
+        HelloApplication.drawBriefly();
     }
 
     public ArrayList<AnimeLog> getAnimes() {
@@ -138,8 +146,23 @@ public class AnimeProfile {
     }
 
     public void orderList(String order, boolean asc) {
+        System.out.println(order );
 
-        applyFilter();
+     //   switch (order) {
+       //     case "finish" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getEndDate) : Comparator.comparing(AnimeLog::getEndDate).reversed());
+      //      case "start" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getStartDate) : Comparator.comparing(AnimeLog::getStartDate).reversed());
+     //       case "score" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getScore): Comparator.comparing(AnimeLog::getScore).reversed());
+     //       case "timewatching" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getTimeWatching): Comparator.comparing(AnimeLog::getTimeWatching).reversed());
+     //       case "episodes" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getEpisodes): Comparator.comparing(AnimeLog::getEpisodes).reversed());
+     //       case "rewatches" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getRewatches): Comparator.comparing(AnimeLog::getRewatches).reversed());
+      //      case "pace" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getWatchPace): Comparator.comparing(AnimeLog::getWatchPace).reversed());
+    //    }
+        applyFilter(order, asc);
+
+    }
+    public void orderList(String order, boolean asc, ArrayList<AnimeLog> animes) {
+        System.out.println(order );
+
         switch (order) {
             case "finish" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getEndDate) : Comparator.comparing(AnimeLog::getEndDate).reversed());
             case "start" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getStartDate) : Comparator.comparing(AnimeLog::getStartDate).reversed());
@@ -149,10 +172,9 @@ public class AnimeProfile {
             case "rewatches" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getRewatches): Comparator.comparing(AnimeLog::getRewatches).reversed());
             case "pace" -> animes.sort(asc ? Comparator.comparing(AnimeLog::getWatchPace): Comparator.comparing(AnimeLog::getWatchPace).reversed());
         }
-
+       // applyFilter();
 
     }
-
     public List<AnimeLog> getList() {
 
         return animes;

@@ -131,7 +131,7 @@ public class MenuPage extends MenuElement{
 
                 //     System.out.println(element.getInfo() + element.getVisibleX() + " " + element.getVisibleY());
 
-                if (element.getVisibleY()- element.getHeight() < getVisibleY()+getVisibleHeight()+ offset ) {
+                if (element.getVisibleY()- element.getHeight() < getVisibleY()+getVisibleHeight()+ offset) {
 
                     element.drawElement(g);
                 }

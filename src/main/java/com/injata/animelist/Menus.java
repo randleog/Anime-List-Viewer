@@ -47,8 +47,8 @@ public class Menus {
         menu.add(new MenuButton("include Completed","",0,1150,100,75, MenuDirections.TOP_RIGHT, true,"!includestatus_COMPLETED","updateList"));
 
 
-        MenuPage timelineSettingsTab = new MenuPage("timeline_Settings_Tab",0,75, (int)HelloApplication.getCanvasHeight(), MenuDirections.TOP_RIGHT);
-
+        MenuPage timelineSettingsTab = new MenuPage("timeline_Settings_Tab",0,75, 800, MenuDirections.TOP_RIGHT);
+        //(int)HelloApplication.getCanvasHeight()
         timelineSettingsTab.itemsStacking=true;
         timelineSettingsTab.setCurrentMenu(menu);
    //     timelineSettingsTab.setUpMenuSlider();

@@ -53,6 +53,8 @@ public class HelloApplication extends Application {
 
     public static boolean useFile = false;
 
+    public static long currentTime = System.currentTimeMillis();
+
     public static int CANVAS_WIDTH = 2560;
     public static int CANVAS_HEIGHT = 1440;
 
@@ -307,6 +309,36 @@ public class HelloApplication extends Application {
 
 
 
+    public static void drawBriefly() {
+        if (profile==null) {
+            return;
+        }
+        Thread thread = new Thread(new Runnable() {
+
+
+            @Override
+            public void run() {
+
+                for (int i = 0; i < 75; i++) {
+                    try {
+                        Thread.sleep(15);
+                        Platform.runLater(new Runnable() {
+
+                            public void run() {
+                                displayTimeline();
+                            }
+                        });
+
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+            }
+        });
+
+        thread.start();
+    }
 
 
 
@@ -344,7 +376,7 @@ public class HelloApplication extends Application {
                         } else {
                             updateTextPool(true, "Error", "compiling information");
                             profile = getAnimeProfileJson(profileText, input);
-                            timeline.profile = profile;
+                            timeline.setProfile(profile);
                             updateTextPool(true, "Error", "displaying graphics");
                             currentMenu = Menus.getTimelineMenu();
                             currentMenu.addElement(timeline);
@@ -398,6 +430,7 @@ public class HelloApplication extends Application {
 
 
     public static void displayTimeline() {
+        currentTime=System.currentTimeMillis();
      //   Platform.runLater(()-> {
             canvas.getGraphicsContext2D().setFill(Color.BLACK);
             canvas.getGraphicsContext2D().fillRect(0, 0, HelloApplication.CANVAS_WIDTH, HelloApplication.CANVAS_HEIGHT);
