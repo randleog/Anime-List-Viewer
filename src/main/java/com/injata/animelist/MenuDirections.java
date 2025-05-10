@@ -50,13 +50,13 @@ public enum MenuDirections {
             return e.getX()+leftPadding;
         }
         public double getDrawY(MenuElement e,double canvasHeight) {
-            return e.parent.getHeight()-e.getY()-bottomPadding;
+            return e.parent.getHeight()-e.getY()-bottomPadding-e.getHeight();
         }
         public double getLogicalX(MenuElement e,double canvasWidth) {
             return e.getX();
         }
         public double getLogicalY(MenuElement e,double canvasHeight) {
-            return e.parent.getHeight()-e.getY();
+            return e.parent.getHeight()-e.getY()-e.getHeight();
         }
     },
     CENTER {

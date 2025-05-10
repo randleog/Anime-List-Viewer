@@ -38,7 +38,7 @@ public class Menus {
         menu.add(new MenuCheckbox("episodes","sort",50,0,375, MenuDirections.TOP_RIGHT));
         menu.add(new MenuCheckbox("rewatches","sort",50,0,450, MenuDirections.TOP_RIGHT));
        menu.add(new MenuCheckbox("pace","sort",50,0,525, MenuDirections.TOP_RIGHT));
-        //menu.add(new MenuToggleButton("Reverse","reverse","sort_reverse",0,700,100,75, MenuDirections.TOP_RIGHT));
+
         menu.add(new MenuButton("Reverse","reverse",0,650,100,75, MenuDirections.TOP_RIGHT, true, "!sort_reverse","updateList"));
         menu.add(new MenuButton("include Planning","",0,750,100,75, MenuDirections.TOP_RIGHT, true, "!includestatus_PLANNING","updateList"));
         menu.add(new MenuButton("include Dropped","",0,850,100,75, MenuDirections.TOP_RIGHT, true,"!includestatus_DROPPED","updateList"));
@@ -48,15 +48,15 @@ public class Menus {
 
 
         MenuPage timelineSettingsTab = new MenuPage("timeline_Settings_Tab",0,75, 800, MenuDirections.TOP_RIGHT);
-        //(int)HelloApplication.getCanvasHeight()
+
         timelineSettingsTab.itemsStacking=true;
         timelineSettingsTab.setCurrentMenu(menu);
-   //     timelineSettingsTab.setUpMenuSlider();
-     //   menu.add(new MenuAnimeTimeline(0,0));
+
         MenuPage menuPage = new MenuPage(0,0);
         ArrayList<MenuElement> menu2 = new ArrayList<>();
         menu2.add(timelineSettingsTab);
-        menu2.add(new MenuButton("back","back",0,0,150,100, MenuDirections.BOTTOM_RIGHT, false,"back"));
+      //  menu2.add(new MenuText("zoom: ",200,10,"zoom", MenuDirections.TOP_RIGHT));
+
 
 
         menu2.add(new MenuToggleButton("settings","settings","timeline_Settings_Tab_visibility",0,0,150,75, MenuDirections.TOP_RIGHT));

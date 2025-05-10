@@ -7,10 +7,22 @@ import javafx.scene.text.Font;
 public class MenuText extends MenuElement {
     public String text;
     public double fontSize= 30;
+    private String key;
+
+    private String textType="null";
     public MenuText(String text, int x, int y, MenuDirections direction) {
         super(x, y, direction);
         this.width = Math.max(((text.length()+4)*fontSize/1.6666667),this.width);
         this.text = text;
+        textType = "static";
+    }
+
+    public MenuText(String text, int x, int y,String key, MenuDirections direction) {
+        super(x, y, direction);
+        this.width = Math.max(((text.length()+4)*fontSize/1.6666667),this.width);
+        this.text = text;
+        this.key = key;
+        textType = "counter";
     }
 
     public void setText(String text) {
@@ -22,12 +34,23 @@ public class MenuText extends MenuElement {
 
     @Override
     public void drawElement(GraphicsContext g) {
+     //   text = HelloApplication.textPool.getOrDefault(key,text);
         cacheX=getVisibleX();
         cacheY=getVisibleY();
      //   System.out.println(getVisibleX());
       //  System.out.println(getVisibleY());
+        g.setFill(Color.WHITE);
         g.setFont(Font.font("monospace",fontSize));
-        g.fillText(text, cacheX, cacheY);
+        switch (textType) {
+            case "counter" ->{
+                g.fillText(text + HelloApplication.textPool.getOrDefault(key,"0"), cacheX, cacheY);
+            }
+            case "static" ->{
+                g.fillText(text , cacheX, cacheY);
+            }
+        }
+
+
     }
 
     @Override

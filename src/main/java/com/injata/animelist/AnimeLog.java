@@ -21,10 +21,12 @@ public class AnimeLog extends MenuElement{
 
     public long startDate;
     public long endDate;
-    public static double determinedDiff = 17.28;
+
 
     public long showStartDate;
     public long showEndDate;
+
+    public String mediaType = "";
 
     public JsonNode rawData;
     public static double minZoomImage = 1.5;
@@ -48,6 +50,8 @@ public class AnimeLog extends MenuElement{
     public static double max_text_Size_zoom = 2;
     public static double imageWidth = gap*0.667;
     public static double imageHeight = gap*0.95;
+
+    private int duration=0;
 
     public static void loadColors () {
         colors = new ArrayList<>();
@@ -106,13 +110,7 @@ public class AnimeLog extends MenuElement{
         }
     }
 
-    public static double getAnimeDayDifference(long startdate, long enddate) {
-        return (getRelativeValue(startdate, enddate))/determinedDiff;
-    }
 
-    public static double getRelativeValue(long start, long end) {
-        return ((end-start)/5000000.0);
-    }
 
     public boolean findingImage = false;
     public Image image;
@@ -135,24 +133,24 @@ public class AnimeLog extends MenuElement{
         //pre watch line
         g.fillRect(xv
                 , yv + zoomScale * (gap / 4) + zoomScale * 5.5,
-                getRelativeValue(profile.startDate, getEndDate()) * zoomScale + zoomScale * 1000,
+                Util.getRelativeValue(profile.startDate, getEndDate()) * zoomScale + zoomScale * 1000,
                 2 * zoomScale);
         //  canvas.getGraphicsContext2D().setFill(Color.WHITE);
 
 
-        fillTextIfVisible(g, (int) Math.ceil(getAnimeDayDifference(startDate, endDate) + 1) + " days, " + getValue("series_episodes") + " eps "
-                , zoomScale * 910 + xv + getRelativeValue(profile.startDate, getEndDate()) * zoomScale + zoomScale * determinedDiff
+        fillTextIfVisible(g, (int) Math.ceil(Util.getAnimeDayDifference(startDate, endDate) + 1) + " days, " + getValue("series_episodes") + " eps "
+                , zoomScale * 910 + xv + Util.getRelativeValue(profile.startDate, getEndDate()) * zoomScale + zoomScale * Util.determinedDiff
                 , yv + zoomScale * (gap / 4), zoomScale);
 
 
         //watch time line
-        g.fillRect(zoomScale * 1000 + xv + getRelativeValue(profile.startDate, getStartDate()) * zoomScale
+        g.fillRect(zoomScale * 1000 + xv + Util.getRelativeValue(profile.startDate, getStartDate()) * zoomScale
                 , yv + zoomScale * (gap / 4) + zoomScale * 5.5,
-                Math.max(getRelativeValue(getStartDate(), getEndDate()) * zoomScale, zoomScale) + zoomScale * determinedDiff,
+                Math.max(Util.getRelativeValue(getStartDate(), getEndDate()) * zoomScale, zoomScale) + zoomScale * Util.determinedDiff,
                 10 * zoomScale);
 
-        double startPointX = getRelativeValue(profile.startDate, getShowStartDate());
-        double endPointX = getRelativeValue(profile.startDate, getShowEndDate());
+        double startPointX = Util.getRelativeValue(profile.startDate, getShowStartDate());
+        double endPointX = Util.getRelativeValue(profile.startDate, getShowEndDate());
 
         g.fillRect(zoomScale * 1000 + xv + startPointX * zoomScale
                 , yv + zoomScale * (gap / 4) + zoomScale * 1.5,
@@ -167,7 +165,7 @@ public class AnimeLog extends MenuElement{
 
         //  System.out.println(zoomScale*1000+xv+getRelativeValue(profile.startDate, log.getStartDate()));
 
-        double day = getRelativeValue(profile.startDate, getEndDate()) / determinedDiff + parent.x / determinedDiff - imageWidth / determinedDiff + 1000 / determinedDiff;//getAnimeDayDifference(profile.startDate,log.getEndDate());
+        double day = Util.getRelativeValue(profile.startDate, getEndDate()) / Util.determinedDiff + parent.x / Util.determinedDiff - imageWidth / Util.determinedDiff + 1000 / Util.determinedDiff;//getAnimeDayDifference(profile.startDate,log.getEndDate());
         if (day + 1 < 0) {
 
             fillTextIfVisible(g, "< " + String.format("%.02f", day + 1) + "d", 60 * zoomScale, yv + zoomScale * (gap / 4), zoomScale);
@@ -285,6 +283,11 @@ public class AnimeLog extends MenuElement{
                 return "DROPPED";
             }
         },
+        REPEATING {
+            public String textValue() {
+                return "REPEATING";
+            }
+        },
         PAUSED {
             public String textValue() {
                 return "PAUSED";
@@ -326,6 +329,10 @@ public class AnimeLog extends MenuElement{
     }
 
 
+    public int getDuration() {
+        return duration;
+    }
+
     public void setValue(String type, String input) {
         if (input == null) {
             return;
@@ -334,6 +341,9 @@ public class AnimeLog extends MenuElement{
             case "my_status"-> {
                 animestatus = status.valueOf(input);
                 animeValues.put(type,input);
+            }
+            case "duration"-> {
+                duration = Integer.parseInt(input);
             }
             case "series_episodes" -> episodes = Integer.parseInt(input);
             case "my_watched_episodes" -> watchedEpisodes = Integer.parseInt(input);
@@ -440,7 +450,7 @@ public class AnimeLog extends MenuElement{
     }
     public int getTimeWatching() {
 
-        return (int)Math.ceil(getAnimeDayDifference(startDate,endDate));
+        return (int)Math.ceil(Util.getAnimeDayDifference(startDate,endDate));
     }
 
     public double getWatchPace() {

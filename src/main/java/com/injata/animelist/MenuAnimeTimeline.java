@@ -9,6 +9,7 @@ import javafx.scene.text.FontWeight;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.TimeZone;
 
@@ -42,9 +43,21 @@ public class MenuAnimeTimeline extends MenuElement{
 
     public double zoomScale;
 
+    private MenuLineGraph lineGraph;
+
+    private Date dragDate;
+
+    private int startYear = 0;
+    private int totalYears = 1;
 
     public MenuAnimeTimeline(int x, int y, MenuDirections direction) {
+
         super(x, y, direction);
+
+        lineGraph = new MenuLineGraph(x,y);
+
+        lineGraph.direction=MenuDirections.BOTTOM_LEFT;
+        lineGraph.parent=this;
     }
 
 
@@ -54,6 +67,10 @@ public class MenuAnimeTimeline extends MenuElement{
             log.parent=this;
         }
         this.profile=profile;
+
+        this.startYear= ( new Date(profile.startDate)).getYear()+1900;
+        this.totalYears = (HelloApplication.currentDate.getYear()+1900)-startYear;
+        dragDate = new Date(profile.startDate);
     }
 
 
@@ -83,8 +100,8 @@ public class MenuAnimeTimeline extends MenuElement{
 
 
 
-        long currentTime = System.currentTimeMillis();
-        double now = getRelativeValue(profile.startDate,currentTime);
+
+        double now = getRelativeValue(profile.startDate,HelloApplication.currentTime);
         double xv = x*zoomScale;
 
 
@@ -101,7 +118,7 @@ public class MenuAnimeTimeline extends MenuElement{
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-        Date date = new Date(currentTime);
+        Date date = new Date(HelloApplication.currentTime);
         g.fillText("NOW "+date, zoomScale*1010+xv+now*zoomScale,((gap)*zoomScale));
 
 
@@ -110,8 +127,8 @@ public class MenuAnimeTimeline extends MenuElement{
 
 
 
-        int startYear= ( new Date(profile.startDate)).getYear()+1900;
-        int totalYears = (date.getYear()+1900)-startYear;
+
+
 
         for (int i = 0; i < totalYears+1; i++) {
 
@@ -140,6 +157,7 @@ public class MenuAnimeTimeline extends MenuElement{
         for (AnimeLog log : profile.getAnimes()) {
             log.draw(g,zoomScale,profile);
         }
+        lineGraph.draw(g,zoomScale,profile,dragDate);
    //     g.setFill(Color.rgb(0,0,0,0.8));
       //  g.fillRect(0,0,HelloApplication.getCanvasWidth(),Math.max(gap*zoomScale/2,gap*zoomScale/2+y*zoomScale));
         g.setFill(Color.WHITE);
@@ -185,13 +203,22 @@ public class MenuAnimeTimeline extends MenuElement{
             y -= (ydiff / zoomScale) / zoomFactor;
             zoomScale=zoomScale*zoomFactor;
         }
+
+        HelloApplication.textPool.put("zoom",(int)(zoomScale*100)+"");
         return false;
     }
 
+    private final long space = (long)(((1000)*86400000L)/Util.determinedDiff);
+    private final long dayDiff = (long)(86400000L/Util.determinedDiff);
     @Override
     public boolean drag(double xp, double yp) {
         x = (dragXB-(dragX-xp)/zoomScale);
         y = (dragYB-(dragY-yp)/zoomScale);
+
+
+
+        dragDate = new Date(profile.startDate-(long)(x*dayDiff)+space);
+     //   System.out.println((dragDate.getYear()+1900) + " " + (int)((x)));
 
         return false;
     }

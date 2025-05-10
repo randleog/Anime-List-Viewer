@@ -7,6 +7,8 @@ import java.util.List;
 
 public class AnimeProfile {
 
+    public HashMap<String,Double> dayLog = new HashMap<>();
+
     public HashMap<String, String> profileValues;
 
 
@@ -40,6 +42,26 @@ public class AnimeProfile {
         long endDateValue = anime.getEndDate();
         if (endDateValue > endDate && !(endDateValue <= 0) && endDateValue !=Long.MAX_VALUE) {
             endDate = endDateValue;
+        }
+       // System.out.println((anime.getStartDate()-anime.getEndDate())/864000000);
+
+    }
+
+
+    public void applyLineGraph() {
+        for (AnimeLog anime : animes) {
+            if (anime.getEndDate() - anime.getStartDate() > 0) {
+                int start =  (int) ((anime.getStartDate()-startDate) / 86400000);
+                int end = (int)((anime.getEndDate() -startDate)/ 86400000);
+                for (int i = start; i <= end; i++) {
+                    String key = i + "_pace";
+                     dayLog.put(key,dayLog.getOrDefault(key,0.0)+anime.getWatchPace()*anime.getDuration());
+
+                    key = i + "_count";
+                    dayLog.put(key,dayLog.getOrDefault(key,0.0)+1);
+
+                }
+            }
         }
     }
 

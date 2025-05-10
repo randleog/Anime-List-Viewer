@@ -71,7 +71,7 @@ public class MenuSlider extends MenuElement{
 
         cacheX = getVisibleX();
         cacheY= getVisibleY()+getOffset();
-        System.out.println(cacheX + " " + cacheY);
+
         g.setFill(Color.rgb(255, 255, 255, 0.05));
         g.fillRect(cacheX, cacheY, 50, parent.getVisibleHeight());
 
