@@ -1,6 +1,5 @@
 package com.injata.animelist;
 
-import java.awt.desktop.SystemHotkey;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;

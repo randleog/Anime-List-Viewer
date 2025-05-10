@@ -167,7 +167,7 @@ public class AnimeLog extends MenuElement{
 
         //  System.out.println(zoomScale*1000+xv+getRelativeValue(profile.startDate, log.getStartDate()));
 
-        double day = getRelativeValue(profile.startDate, getEndDate()) / determinedDiff + x / determinedDiff - imageWidth / determinedDiff + 1000 / determinedDiff;//getAnimeDayDifference(profile.startDate,log.getEndDate());
+        double day = getRelativeValue(profile.startDate, getEndDate()) / determinedDiff + parent.x / determinedDiff - imageWidth / determinedDiff + 1000 / determinedDiff;//getAnimeDayDifference(profile.startDate,log.getEndDate());
         if (day + 1 < 0) {
 
             fillTextIfVisible(g, "< " + String.format("%.02f", day + 1) + "d", 60 * zoomScale, yv + zoomScale * (gap / 4), zoomScale);
