@@ -15,8 +15,8 @@ public class Menus {
 
 
 
-        MenuTextField errorInfo = new MenuTextField("Searching for Anilist Profile...","","Error",0,300,1,1,MenuDirections.CENTER);
-        errorInfo.textPoolRef="Error";
+        MenuText errorInfo = new MenuText("",-300,300,"Error",MenuDirections.CENTER);
+
         menu.add(errorInfo);
 
         MenuPage menuPage = new MenuPage(0,0);

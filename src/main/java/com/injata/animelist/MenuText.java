@@ -43,7 +43,7 @@ public class MenuText extends MenuElement {
         g.setFont(Font.font("monospace",fontSize));
         switch (textType) {
             case "counter" ->{
-                g.fillText(text + HelloApplication.textPool.getOrDefault(key,"0"), cacheX, cacheY);
+                g.fillText(text + HelloApplication.textPool.getOrDefault(key,""), cacheX, cacheY);
             }
             case "static" ->{
                 g.fillText(text , cacheX, cacheY);

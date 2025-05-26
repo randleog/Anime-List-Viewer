@@ -1,13 +1,11 @@
 package com.injata.animelist;
 
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.input.KeyCode;
+import javafx.scene.input.Clipboard;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
-import java.util.Objects;
-
-public class MenuTextField extends MenuElement{
+public class MenuTextField extends MenuElement {
     public static final int DEFAULT_WIDTH = 150;
     public static final int DEFAULT_HEIGHT = 75;
 
@@ -25,37 +23,39 @@ public class MenuTextField extends MenuElement{
     public double fontSize = 30;
 
     private int baseWidth = 0;
-
+    private boolean isControl = false;
     private boolean isShift = false;
-    public MenuTextField(int x, int y) {
-        super(x,y);
 
-        this.width =DEFAULT_WIDTH;
-        this.height =DEFAULT_HEIGHT;
+    public MenuTextField(int x, int y) {
+        super(x, y);
+
+        this.width = DEFAULT_WIDTH;
+        this.height = DEFAULT_HEIGHT;
         this.baseWidth = DEFAULT_WIDTH;
-        this.promptText="";
+        this.promptText = "";
         this.text = "";
         keyText = "";
 
     }
 
-    public MenuTextField(String text, String promptText,int x, int y, int width, int height) {
-        super(x,y);
+    public MenuTextField(String text, String promptText, int x, int y, int width, int height) {
+        super(x, y);
 
-        this.width =width;
-        this.height =height;
-        this.promptText=promptText;
+        this.width = width;
+        this.height = height;
+        this.promptText = promptText;
         this.baseWidth = width;
         this.text = text;
         this.keyText = text;
 
     }
-    public MenuTextField(String text, String promptText,String keyText,int x, int y, int width, int height,MenuDirections direction) {
+
+    public MenuTextField(String text, String promptText, String keyText, int x, int y, int width, int height, MenuDirections direction) {
         super(x, y, direction);
 
-        this.width =width;
-        this.height =height;
-        this.promptText=promptText;
+        this.width = width;
+        this.height = height;
+        this.promptText = promptText;
         this.text = text;
         this.keyText = keyText;
         this.baseWidth = width;
@@ -67,28 +67,27 @@ public class MenuTextField extends MenuElement{
 
     @Override
     public void drawElement(GraphicsContext g) {
+        cacheX = getVisibleX();
+        cacheY = getVisibleY();
 
-        if (this.parent.focusedItem==this) {
+        if (this.parent.focusedItem == this) {
             g.setStroke(Color.WHITE);
-            g.strokeRect(cacheX,cacheY,this.width,this.height);
+            g.strokeRect(cacheX, cacheY, this.width, this.height);
+
         } else if (isHover) {
-                g.setFill(Color.rgb(255, 255, 255, 0.1));
+            g.setFill(Color.rgb(255, 255, 255, 0.1));
 
-            } else {
-                g.setFill(Color.rgb(0, 0, 0, 0.5));
-            }
+        } else {
+            g.setFill(Color.rgb(0, 0, 0, 0.5));
+        }
 
-
-        cacheX=getVisibleX();
-        cacheY=getVisibleY();
-
-        g.setFill(Color.rgb(0,0,0,0.1));
-        g.fillRect(cacheX,cacheY,this.width,this.height);
-        g.setFont(Font.font("monospace",fontSize));
-        if (textPoolRef !=null) {
-         //   System.out.println("should be printing rn " + HelloApplication.textPool.get(textPoolRef) + " + " + textPoolRef );
+        g.setFill(Color.rgb(0, 0, 0, 0.1));
+        g.fillRect(cacheX, cacheY, this.width, this.height);
+        g.setFont(Font.font("monospace", fontSize));
+        if (textPoolRef != null) {
+            //   System.out.println("should be printing rn " + HelloApplication.textPool.get(textPoolRef) + " + " + textPoolRef );
             g.setFill(Color.WHITE);
-            g.fillText(HelloApplication.textPool.getOrDefault(textPoolRef,""), cacheX + TEXT_HEIGHT, cacheY + height - TEXT_HEIGHT);
+            g.fillText(HelloApplication.textPool.getOrDefault(textPoolRef, ""), cacheX + TEXT_HEIGHT, cacheY + height - TEXT_HEIGHT);
         } else {
             if (text.isEmpty()) {
                 g.setFill(Color.GRAY);
@@ -98,6 +97,7 @@ public class MenuTextField extends MenuElement{
                 g.fillText(text, cacheX + TEXT_HEIGHT, cacheY + height - TEXT_HEIGHT);
             }
         }
+        g.fillRect(cacheX+((caret) * fontSize / 1.6666667) + TEXT_HEIGHT,cacheY + height - TEXT_HEIGHT+5,fontSize / 1.6666667,2);
 
     }
 
@@ -116,7 +116,7 @@ public class MenuTextField extends MenuElement{
                     // triggerAction();
 
                     if (this.parent.focusedItem == this) {
-                   //     this.parent.focusedItem = null;
+                        //     this.parent.focusedItem = null;
                     } else {
                         this.parent.focusedItem = this;
                     }
@@ -124,13 +124,13 @@ public class MenuTextField extends MenuElement{
             } else {
                 isHover = false;
             }
-            return isHover!=prevHover;
+            return isHover != prevHover;
         } else {
             if (releasing) {
                 releaseText(info);
-            }else {
+            } else {
                 typeText(info);
-                this.width = Math.max(this.baseWidth,((text.length()+4)*fontSize/1.6666667));
+                this.width = Math.max(this.baseWidth, ((text.length() + 4) * fontSize / 1.6666667));
             }
 
 
@@ -162,7 +162,7 @@ public class MenuTextField extends MenuElement{
     }
 
     private void releaseText(String text) {
-        if (parent !=null && this.parent.focusedItem!=this) {
+        if (parent != null && this.parent.focusedItem != this) {
             return;
         }
         if (text.length() > 1) {
@@ -175,6 +175,9 @@ public class MenuTextField extends MenuElement{
                 }
                 case "ENTER" -> {
 
+                }
+                case "CONTROL" -> {
+                    isControl = false;
                 }
                 case "SHIFT" -> {
                     isShift = false;
@@ -187,43 +190,84 @@ public class MenuTextField extends MenuElement{
     }
 
     private void signalUpdatedText() {
-        HelloApplication.actionButton(keyText+"_"+"違お", this);
+        HelloApplication.actionButton(keyText + "_" + "違お", this);
     }
 
+    private int caret = 0;
+
     private void typeText(String text) {
-        if (parent !=null && this.parent.focusedItem!=this) {
+        if (parent != null && this.parent.focusedItem != this) {
             return;
         }
+
+
         if (text.length() > 1) {
             switch (text) {
                 case "BACK_SPACE" -> {
 
                     if (!this.text.isEmpty()) {
-                        signalUpdatedText();
-                        this.text = this.text.substring(0,this.text.length()-1);
+
+                        if (this.text.length()-1< caret) {
+
+                        }if (this.text.length()-1== caret) {
+                            this.text = this.text.substring(0, caret);
+                        } else {
+                            this.text = this.text.substring(0, caret-1)+this.text.substring(caret );
+
+                        }
+                        caret--;
                     }
                 }
                 case "DELETE" -> {
 
                     if (!this.text.isEmpty()) {
+                        if (this.text.length()-1< caret) {
+
+                        }if (this.text.length()-1== caret) {
+                            this.text = this.text.substring(0, caret);
+                        } else {
+                            this.text = this.text.substring(0, caret)+this.text.substring(caret +1);
+
+                        }
                         signalUpdatedText();
-                        this.text = this.text.substring(1);
                     }
                 }
                 case "ENTER" -> {
-                    HelloApplication.actionButton(keyText+":"+this.text, this);
+                    HelloApplication.actionButton(keyText + ":" + this.text, this);
                 }
+                case "CONTROL" -> {
+                    isControl = true;
+                }
+                case "LEFT" -> {
+                    caret--;
+
+                }
+                case "RIGHT" -> {
+                    caret++;
+
+                }
+
                 case "SHIFT" -> {
                     isShift = true;
                 }
-                default-> {
+                default -> {
 
-                   // System.out.println("unhandled key press input for " + text);
+                    // System.out.println("unhandled key press input for " + text);
                 }
             }
+            caret = Math.max(Math.min(caret,this.text.length()),0);
             return;
         }
-        this.text = this.text +(isShift ? text : text.toLowerCase());
+        if (text.equals("V") && isControl) {
+            text = Clipboard.getSystemClipboard().getString();
+
+        }
+
+        caret +=text.length();
+
+        this.text = this.text.substring(0, caret-1)+(isShift ? text : text.toLowerCase())+this.text.substring(caret-1);
+        caret = Math.min(caret,this.text.length());
+
         signalUpdatedText();
 
         //DELETE
@@ -231,7 +275,7 @@ public class MenuTextField extends MenuElement{
     }
 
     public void triggerAction() {
-      //  HelloApplication.actionButton(keyText, this);
+        //  HelloApplication.actionButton(keyText, this);
     }
 
 
@@ -255,7 +299,6 @@ public class MenuTextField extends MenuElement{
     public String getInfo() {
         return text + " " + promptText + " menutext";
     }
-
 
 
 }
