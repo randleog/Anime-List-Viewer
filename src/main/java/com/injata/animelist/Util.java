@@ -11,6 +11,16 @@ public class Util {
         return (getRelativeValue(startdate, enddate))/determinedDiff;
     }
 
+    public static double getAnimatedValue(double currentV, double oldV, long currentTime, long startTime, long animationLength) {
+        if (currentTime - startTime < animationLength) {
+
+            //   System.out.println(((HelloApplication.currentTime-lastPosUpdate)/1500.0) +  " " +(1-((HelloApplication.currentTime-lastPosUpdate)/1500.0)) );
+            return ((currentTime - startTime) / (animationLength * 1.0)) * currentV + (1 - ((currentTime - startTime) / (animationLength * 1.0))) * oldV;
+        } else {
+            return currentV;
+        }
+    }
+
     public static double getRelativeValue(long start, long end) {
         return ((end-start)/5000000.0);
     }

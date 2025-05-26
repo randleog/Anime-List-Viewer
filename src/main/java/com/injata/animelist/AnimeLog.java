@@ -120,6 +120,8 @@ public class AnimeLog extends MenuElement{
 
 
 
+
+
     public void draw(GraphicsContext g, double zoomScale, AnimeProfile profile) {
 
 
@@ -328,6 +330,11 @@ public class AnimeLog extends MenuElement{
                 + getValue("my_start_date")+ " to " + getValue("my_finish_date");
     }
 
+    public String getDisplayName() {
+        return getValue("series_title" + (displayEN ? "_english" : ""));
+    }
+
+
 
     public int getDuration() {
         return duration;
@@ -338,6 +345,7 @@ public class AnimeLog extends MenuElement{
             return;
         }
         switch(type) {
+
             case "my_status"-> {
                 animestatus = status.valueOf(input);
                 animeValues.put(type,input);

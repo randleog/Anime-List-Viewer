@@ -4,25 +4,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import eu.hansolo.tilesfx.addons.CanvasSpinner;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontPosture;
-import javafx.scene.text.FontWeight;
-import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -32,20 +23,20 @@ import java.awt.GraphicsDevice;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.channels.ConnectionPendingException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 
 //todo:
-//interpolate position when sorting
-//score colors
+
+//fix the toggle buttons looking selected when they arent -> caused by having seperate boolean to read if it should appear on
 ///compare option (allow to compare you list to another person)
-//graph representing "watch time per day"
+
+//- suggsted to watch next algorithm [多分 needs to be a button you press seperately]
+//- find the list of activities - each episode you watched log of the show should appear on the timeline
+//- add toggle to show manga or not
+//- add a reduce animations option - only ticks when drawn new frame, and no animations for sorting the list
 public class HelloApplication extends Application {
 
 
@@ -55,7 +46,7 @@ public class HelloApplication extends Application {
 
     public static boolean useFile = false;
 
-    public static String toolTip="";
+    public static String toolTip = "";
 
     public static long currentTime = System.currentTimeMillis();
 
@@ -74,7 +65,6 @@ public class HelloApplication extends Application {
     public static boolean initialise_zoom = false;
 
 
-
     public static long launchTime;
 
     public static boolean shouldUpdateFrame = true;
@@ -82,9 +72,7 @@ public class HelloApplication extends Application {
     public static AnimeProfile profile;
 
 
-
-
-    public static double mouseX =0;
+    public static double mouseX = 0;
     public static double mouseY = 0;
 
     //should add "sequel mode" instead of individual shows it shows the timeline of an anime title including later seasons and ova as part of one timeline log.
@@ -99,18 +87,16 @@ public class HelloApplication extends Application {
     public static HashMap<String, String> textPool = new HashMap<>();
 
 
-
     @Override
     public void start(Stage stage) throws IOException {
         AnimeLog.loadColors();
 
 
-
         launchTime = System.currentTimeMillis();
-           GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
-        CANVAS_WIDTH= Toolkit.getDefaultToolkit().getScreenSize().width;
-        CANVAS_HEIGHT= Toolkit.getDefaultToolkit().getScreenSize().height;
-        System.out.println( Toolkit.getDefaultToolkit().getScreenSize().width);
+        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+        CANVAS_WIDTH = Toolkit.getDefaultToolkit().getScreenSize().width;
+        CANVAS_HEIGHT = Toolkit.getDefaultToolkit().getScreenSize().height;
+        System.out.println(Toolkit.getDefaultToolkit().getScreenSize().width);
 
         mainStage = stage;
 
@@ -149,43 +135,37 @@ public class HelloApplication extends Application {
      */
 
 
-
-
-
     }
 
-    private static void updateTextPool(boolean updateGraphics,String key, String text) {
-        textPool.put(key,text);
+    public static void updateTextPool(boolean updateGraphics, String key, String text) {
+        textPool.put(key, text);
 
-        System.out.println("updated "+key + " to be: " + text);
+        System.out.println("updated " + key + " to be: " + text);
         if (updateGraphics) {
-          displayTimeline();
+            displayTimeline();
         }
     }
 
     private static void getDisplay(Stage stage) {
-     //   currentMenu = Menus.getTimelineMenu();
+        //   currentMenu = Menus.getTimelineMenu();
         currentMenu = Menus.getFirstMenu();
         currentMenu.setWidth(CANVAS_WIDTH);
         currentMenu.setHeight(CANVAS_HEIGHT);
-        currentMenu.height=CANVAS_HEIGHT;
+        currentMenu.height = CANVAS_HEIGHT;
 
         HBox pane = new HBox();
 
         //   System.out.println(queryAnilistAPI());
 
-        canvas = new Canvas(CANVAS_WIDTH,CANVAS_HEIGHT);
-
-
-
-
+        canvas = new Canvas(CANVAS_WIDTH, CANVAS_HEIGHT);
 
 
         stage.widthProperty().addListener(new ChangeListener<Number>() {
-            @Override public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneWidth, Number newSceneWidth) {
+            @Override
+            public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneWidth, Number newSceneWidth) {
                 CANVAS_WIDTH = newSceneWidth.intValue();
                 canvas.setWidth(CANVAS_WIDTH);
-               currentMenu.setWidth(CANVAS_WIDTH);
+                currentMenu.setWidth(CANVAS_WIDTH);
                 displayTimeline();
 
 
@@ -193,7 +173,8 @@ public class HelloApplication extends Application {
         });
 
         stage.heightProperty().addListener(new ChangeListener<Number>() {
-            @Override public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneHeight, Number newSceneHeight) {
+            @Override
+            public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneHeight, Number newSceneHeight) {
                 CANVAS_HEIGHT = newSceneHeight.intValue();
 
                 canvas.setHeight(CANVAS_HEIGHT);
@@ -209,30 +190,27 @@ public class HelloApplication extends Application {
 
 
         canvas.getGraphicsContext2D().setFill(Color.BLACK);
-        canvas.getGraphicsContext2D().fillRect(0,0,CANVAS_WIDTH,CANVAS_HEIGHT);
-
+        canvas.getGraphicsContext2D().fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 
         stage.setTitle("Anime list");
         Scene scene = new Scene(pane, CANVAS_WIDTH, CANVAS_HEIGHT);
         scene.setOnKeyPressed(keyEvent -> {
-            if (keyEvent.getCode()==KeyCode.F11) {
+            if (keyEvent.getCode() == KeyCode.F11) {
                 stage.setFullScreen(!stage.isFullScreen());
             } else if (keyEvent.getCode() == KeyCode.ESCAPE) {
                 stage.setFullScreen(false);
             }
-            currentMenu.interactElement(keyEvent.getCode()+"",false,0,0);
+            currentMenu.interactElement(keyEvent.getCode() + "", false, 0, 0);
             displayTimeline();
         });
         scene.setOnKeyReleased(keyEvent -> {
 
-            currentMenu.interactElement(keyEvent.getCode()+"",true,0,0);
+            currentMenu.interactElement(keyEvent.getCode() + "", true, 0, 0);
             displayTimeline();
         });
 
         stage.setScene(scene);
-
-
 
 
         stage.show();
@@ -242,29 +220,27 @@ public class HelloApplication extends Application {
 
 
         canvas.setOnMouseClicked(mouseEvent -> {
-            currentMenu.interactElement("",true,mouseEvent.getX(),mouseEvent.getY());
+            currentMenu.interactElement("", true, mouseEvent.getX(), mouseEvent.getY());
             displayTimeline();
         });
         canvas.getGraphicsContext2D().setImageSmoothing(true);
         canvas.setOnMousePressed(dragEvent -> {
-            currentMenu.mouseDown(dragEvent.getX(),dragEvent.getY());
+            currentMenu.mouseDown(dragEvent.getX(), dragEvent.getY());
             displayTimeline();
         });
         canvas.setOnMouseDragged(dragEvent -> {
 
-            mouseX  =dragEvent.getX();
-            mouseY =dragEvent.getY();
+            mouseX = dragEvent.getX();
+            mouseY = dragEvent.getY();
 
 
-
-
-            currentMenu.drag(dragEvent.getX(),dragEvent.getY());
+            currentMenu.drag(dragEvent.getX(), dragEvent.getY());
 
             displayTimeline();
         });
 
         canvas.setOnMouseReleased(dragEvent -> {
-            currentMenu.mouseRelease(dragEvent.getX(),dragEvent.getY());
+            currentMenu.mouseRelease(dragEvent.getX(), dragEvent.getY());
 
 
         });
@@ -289,26 +265,25 @@ public class HelloApplication extends Application {
         canvas.setOnScroll(scrollEvent -> {
 
 
-
-            currentMenu.scroll(scrollEvent.getDeltaY(),scrollEvent.getX(),scrollEvent.getY());
+            currentMenu.scroll(scrollEvent.getDeltaY(), scrollEvent.getX(), scrollEvent.getY());
 
             displayTimeline();
         });
 
-        canvas.setOnMouseMoved( mouseEvent -> {
-            mouseX  =mouseEvent.getX();
-            mouseY =mouseEvent.getY();
-            boolean update = currentMenu.interactElement("",false,mouseEvent.getX(),mouseEvent.getY());
-        //    if (dragEvent.getX() < 0) {
-          //      moveMouse(new Point((int)CANVAS_WIDTH,(int)dragEvent.getY()));
+        canvas.setOnMouseMoved(mouseEvent -> {
+            mouseX = mouseEvent.getX();
+            mouseY = mouseEvent.getY();
+            boolean update = currentMenu.interactElement("", false, mouseEvent.getX(), mouseEvent.getY());
+            //    if (dragEvent.getX() < 0) {
+            //      moveMouse(new Point((int)CANVAS_WIDTH,(int)dragEvent.getY()));
 
-         //   }
+            //   }
             // x = Math.min(100,x);
             // y = Math.min(100,y);
-         //   if (update) {
-                displayTimeline();
+            //   if (update) {
+            displayTimeline();
 
-         //   }
+            //   }
         });
 
 
@@ -316,13 +291,19 @@ public class HelloApplication extends Application {
         stage.setMaximized(true);
 
 
-
     }
 
 
+    public static long animationSpeed = 15; //16 = 60fps.
+    public static long animationLength = 1125;
+    //animations should be 60fps in general. higher fps animation is only useful for direct user interaction like drag
+    //Target slighly higher than 60fps so no frame drops on bad monitors
+    //therefore ideal value = 15
+
 
     public static void drawBriefly() {
-        if (profile==null) {
+        long iterationsRequired = animationLength / animationSpeed;
+        if (profile == null) {
             return;
         }
         Thread thread = new Thread(new Runnable() {
@@ -331,9 +312,9 @@ public class HelloApplication extends Application {
             @Override
             public void run() {
 
-                for (int i = 0; i < 75; i++) {
+                for (int i = 0; i < iterationsRequired; i++) {
                     try {
-                        Thread.sleep(15);
+                        Thread.sleep(animationSpeed);
                         Platform.runLater(new Runnable() {
 
                             public void run() {
@@ -352,6 +333,9 @@ public class HelloApplication extends Application {
         thread.start();
     }
 
+    private static int searchingIndex = 0;
+    private static String lastSearch = "";
+    private static ArrayList<AnimeLog> searchResults = new ArrayList<>();
 
 
     public static void actionButton(String action, MenuElement element) {
@@ -360,26 +344,63 @@ public class HelloApplication extends Application {
 
         String input = action.split(":").length > 1 ? action.split(":")[1] : "";
         switch (command) {
-            case "back" ->{
+            case "back" -> {
                 currentMenu = Menus.getFirstMenu();
-           //    getDisplay(mainStage);
-            }
-            case "sort" ->{
-
-                profile.orderList(input,  textPool.getOrDefault("sort_reverse","1").equals("1"));
                 //    getDisplay(mainStage);
             }
-            case "updateList" ->{
+            case "sort" -> {
 
-                profile.orderList(textPool.getOrDefault("sort","start"),  textPool.getOrDefault("sort_reverse","1").equals("1"));
+                profile.orderList(input, textPool.getOrDefault("sort_reverse", "1").equals("1"));
+                //    getDisplay(mainStage);
             }
-            case "timeline" ->{
-                updateTextPool(true,"Error", "fetching Anilist profile");
+            case "updateList" -> {
+
+                profile.orderList(textPool.getOrDefault("sort", "start"), textPool.getOrDefault("sort_reverse", "1").equals("1"));
+            }
+            case "search_違お" -> {
+                updateTextPool(false, "searchResults", "");
+                searchingIndex = 0;
+                searchResults = new ArrayList<>();
+                lastSearch = "";
+            }
+            case "search" -> {
+                String anime = input;
+                System.out.println("searching for " + anime);
+
+                if (lastSearch.equals(anime)) {
+                    searchingIndex++;
+                }
+                lastSearch = anime;
+                ArrayList<AnimeLog> list = profile.getAnimes();
+                searchResults = new ArrayList<>();
+                for (AnimeLog log : list) {
+                    if (log.getDisplayName().toLowerCase().contains(anime.toLowerCase())) {
+                        searchResults.add(log);
+                    }
+                }
+
+
+                if (searchingIndex >= searchResults.size()) {
+                    searchingIndex = 0;
+                }
+                if (searchResults.size() < 1) {
+                    return;
+
+                }
+                AnimeLog found = searchResults.get(searchingIndex);
+                System.out.println("found " + found.getInfo() + " " + searchingIndex);
+                updateTextPool(false, "searchResults", (searchingIndex + 1) + "/" + searchResults.size());
+                currentMenu.interactElement("search", false, -found.x, -found.y);
+
+
+            }
+            case "timeline" -> {
+                updateTextPool(true, "Error", "fetching Anilist profile");
 
                 Thread thread = new Thread(new Runnable() {
                     public void run() {
-                        MenuAnimeTimeline timeline= new MenuAnimeTimeline(0,0, MenuDirections.TOP_LEFT);
-                        timeline.height =Integer.MAX_VALUE;
+                        MenuAnimeTimeline timeline = new MenuAnimeTimeline(0, 0, MenuDirections.TOP_LEFT);
+                        timeline.height = Integer.MAX_VALUE;
                         String profileText = queryAnilistAPI(input);
 
                         if (profileText.charAt(0) == '!') {
@@ -388,11 +409,11 @@ public class HelloApplication extends Application {
                         } else {
                             ///if manga = true:
                             updateTextPool(true, "Error", "getting Manga");
-                            AnimeProfile mangaProfile = getAnimeProfileJson(queryAnilistAPIManga(input), input,"Manga: ");
+                            AnimeProfile mangaProfile = getAnimeProfileJson(queryAnilistAPIManga(input), input, "Manga: ");
 
 
                             updateTextPool(true, "Error", "compiling information");
-                            profile = getAnimeProfileJson(profileText, input,"");
+                            profile = getAnimeProfileJson(profileText, input, "");
                             for (AnimeLog anime : mangaProfile.getAnimes()) {
 
                                 profile.addAnime(anime);
@@ -403,26 +424,23 @@ public class HelloApplication extends Application {
                             updateTextPool(true, "Error", "displaying graphics");
                             currentMenu = Menus.getTimelineMenu();
                             currentMenu.addElement(timeline);
-                            currentMenu.addElement(   new MenuButton("back","back",0,0,150,100, MenuDirections.BOTTOM_LEFT, false,"back"));
+                            currentMenu.addElement(new MenuButton("back", "back", 0, 0, 150, 100, MenuDirections.BOTTOM_LEFT, false, "back"));
 
-                            profile.orderList("start", textPool.getOrDefault("sort_reverse","1").equals("1"));
-                            textPool.put("sort","start");
+                            profile.orderList("start", textPool.getOrDefault("sort_reverse", "1").equals("1"));
+                            textPool.put("sort", "start");
                             updateTextPool(true, "Error", "");
                         }
 
 
                     }
-            });
+                });
 
-            thread.start();
-
-
-
+                thread.start();
 
 
                 //    getDisplay(mainStage);
             }
-            default ->{
+            default -> {
 
             }
         }
@@ -432,11 +450,10 @@ public class HelloApplication extends Application {
     public static double getCanvasWidth() {
         return CANVAS_WIDTH;
     }
+
     public static double getCanvasHeight() {
         return CANVAS_HEIGHT;
     }
-
-
 
 
     private static void userChooseDir(Stage stage) {
@@ -447,66 +464,59 @@ public class HelloApplication extends Application {
         File option = choice.showOpenDialog(stage);
 
 
-        directory= option.getAbsolutePath();
-
+        directory = option.getAbsolutePath();
 
 
     }
 
 
     public static void displayTimeline() {
-        currentTime=System.currentTimeMillis();
+        currentTime = System.currentTimeMillis();
         currentDate = new Date(currentTime);
-     //   Platform.runLater(()-> {
-            canvas.getGraphicsContext2D().setFill(Color.BLACK);
-            canvas.getGraphicsContext2D().fillRect(0, 0, HelloApplication.CANVAS_WIDTH, HelloApplication.CANVAS_HEIGHT);
+        //   Platform.runLater(()-> {
+        canvas.getGraphicsContext2D().setFill(Color.BLACK);
+        canvas.getGraphicsContext2D().fillRect(0, 0, HelloApplication.CANVAS_WIDTH, HelloApplication.CANVAS_HEIGHT);
 
 
         currentMenu.drawElement(canvas.getGraphicsContext2D());
 
         if (toolTip.length() > 0) {
             canvas.getGraphicsContext2D().setFill(Color.BLACK);
-            canvas.getGraphicsContext2D().fillRect(mouseX,mouseY,100,100);
+            canvas.getGraphicsContext2D().fillRect(mouseX, mouseY, 100, 100);
             canvas.getGraphicsContext2D().setFill(Color.WHITE);
-         //   canvas.getGraphicsContext2D().setFont(Font.font("monso"));
-            canvas.getGraphicsContext2D().fillText(toolTip,mouseX,mouseY);
+            //   canvas.getGraphicsContext2D().setFont(Font.font("monso"));
+            canvas.getGraphicsContext2D().fillText(toolTip, mouseX, mouseY);
         }
 
 
-     //   });
+        //   });
     }
-
-
-
-
-
 
 
     // @JsonTypeInfo(include = JsonTypeInfo.As.WRAPPER_OBJECT, use = JsonTypeInfo.Id.NAME)
 //@JsonTypeName("query")
 //public class Query {
 
-  //      public String query = "query ($type: MediaType!, $userName: String!) { MediaListCollection(type: ANIME userName: \"Injata\") { lists { name entries { id media { id title { romaji } } } } } }";
+    //      public String query = "query ($type: MediaType!, $userName: String!) { MediaListCollection(type: ANIME userName: \"Injata\") { lists { name entries { id media { id title { romaji } } } } } }";
 //}
 
     public static String queryAnilistAPIManga(String username) {
-        String query= "query  { MediaListCollection(type: MANGA userName: \"" + username+"\") { lists { name entries { id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { id coverImage {extraLarge large medium color}  title { romaji english } chapters duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
+        String query = "query  { MediaListCollection(type: MANGA userName: \"" + username + "\") { lists { name entries { id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { id coverImage {extraLarge large medium color}  title { romaji english } chapters duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
         ObjectNode json = new ObjectMapper().createObjectNode();
-        json.put("query",query);
+        json.put("query", query);
 
         try {
             URL url = new URL("https://graphql.anilist.co");
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
             con.setRequestMethod("POST");
-            con.setRequestProperty("Content-Type","application/json");
-            con.setRequestProperty("Accept","application/json");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestProperty("Accept", "application/json");
             con.setDoOutput(true);
             con.setDoInput(true);
-            updateTextPool(true,"Error","Anilist connection established.\nRequesting information...");
+            updateTextPool(true, "Error", "Anilist connection established.\nRequesting information...");
 
             //   con.connect();
-
 
 
             OutputStream out = con.getOutputStream();
@@ -517,7 +527,7 @@ public class HelloApplication extends Application {
 
             InputStream is = null;
 
-            if (statusCode >=200 && statusCode < 400) {
+            if (statusCode >= 200 && statusCode < 400) {
                 is = con.getInputStream();
                 System.out.println("managed to get input");
 
@@ -534,8 +544,7 @@ public class HelloApplication extends Application {
             }
 
 
-            updateTextPool(true,"Error","Anilist API request successful.\nCompiling information...");
-
+            updateTextPool(true, "Error", "Anilist API request successful.\nCompiling information...");
 
 
             BufferedReader responseReader = new BufferedReader(new InputStreamReader(is));
@@ -547,59 +556,59 @@ public class HelloApplication extends Application {
                 response.append(inputLine);
             }
             responseReader.close();
-            if (statusCode ==200) {//&& SAVE_FILES_ENABLED
+            if (statusCode == 200) {//&& SAVE_FILES_ENABLED
                 File file = new File(username + "_Mangalist.txt");
                 FileWriter fileWriter = new FileWriter(file);
-                fileWriter.write(response.toString().replace("{","\n{"));
+                fileWriter.write(response.toString().replace("{", "\n{"));
                 fileWriter.close();
                 //     File config = new File(username + "_config.txt");
                 //    FileWriter fileWriter2 = new FileWriter(file);
                 //     fileWriter.write(response.toString().replace("{","\n{"));
                 //  fileWriter.close();
-                return response.toString().replace("{","\n{");
+                return response.toString().replace("{", "\n{");
             } else {
-                updateTextPool(true,"Error",response.toString().replace("{","\n{"));
-                return "!"+response.toString().replace("{","\n{");
+                updateTextPool(true, "Error", response.toString().replace("{", "\n{"));
+                return "!" + response.toString().replace("{", "\n{");
             }
 
 
         } catch (IOException e) {
 
             e.printStackTrace();
-            updateTextPool(true,"Error","IO Exception. please contact Injata (the dev):\n" + e.getMessage());
+            updateTextPool(true, "Error", "IO Exception. please contact Injata (the dev):\n" + e.getMessage());
             return "IO Exception. please contact Injata (the dev):\n" + e.getMessage();
         }
 
     }
+
     public static String queryAnilistAPI(String username) {
-        String query= "query  { MediaListCollection(type: ANIME userName: \"" + username+"\") { lists { name entries { id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { id coverImage {extraLarge large medium color}  title { romaji english } episodes duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
+        String query = "query  { MediaListCollection(type: ANIME userName: \"" + username + "\") { lists { name entries { id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { id coverImage {extraLarge large medium color}  title { romaji english } episodes duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
         ObjectNode json = new ObjectMapper().createObjectNode();
-        json.put("query",query);
+        json.put("query", query);
 
         try {
             URL url = new URL("https://graphql.anilist.co");
             HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
             con.setRequestMethod("POST");
-            con.setRequestProperty("Content-Type","application/json");
-            con.setRequestProperty("Accept","application/json");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestProperty("Accept", "application/json");
             con.setDoOutput(true);
             con.setDoInput(true);
-            updateTextPool(true,"Error","Anilist connection established.\nRequesting information...");
+            updateTextPool(true, "Error", "Anilist connection established.\nRequesting information...");
 
-         //   con.connect();
-
+            //   con.connect();
 
 
             OutputStream out = con.getOutputStream();
-           // System.out.println(json.toString());
+            // System.out.println(json.toString());
             out.write(json.toString().getBytes());
 
             int statusCode = con.getResponseCode();
 
             InputStream is = null;
 
-            if (statusCode >=200 && statusCode < 400) {
+            if (statusCode >= 200 && statusCode < 400) {
                 is = con.getInputStream();
                 System.out.println("managed to get input");
 
@@ -611,13 +620,12 @@ public class HelloApplication extends Application {
                 System.out.println(
                         "Response Message:"
                                 + con.getResponseMessage());
-        //        return "Response Code:\n"
-          //              + con.getResponseCode()+"\n"+ "Response Message:\n" + con.getResponseMessage();
+                //        return "Response Code:\n"
+                //              + con.getResponseCode()+"\n"+ "Response Message:\n" + con.getResponseMessage();
             }
 
 
-            updateTextPool(true,"Error","Anilist API request successful.\nCompiling information...");
-
+            updateTextPool(true, "Error", "Anilist API request successful.\nCompiling information...");
 
 
             BufferedReader responseReader = new BufferedReader(new InputStreamReader(is));
@@ -629,109 +637,106 @@ public class HelloApplication extends Application {
                 response.append(inputLine);
             }
             responseReader.close();
-            if (statusCode ==200) {//&& SAVE_FILES_ENABLED
+            if (statusCode == 200) {//&& SAVE_FILES_ENABLED
                 File file = new File(username + "_list.txt");
                 FileWriter fileWriter = new FileWriter(file);
-                fileWriter.write(response.toString().replace("{","\n{"));
+                fileWriter.write(response.toString().replace("{", "\n{"));
                 fileWriter.close();
-           //     File config = new File(username + "_config.txt");
-            //    FileWriter fileWriter2 = new FileWriter(file);
-           //     fileWriter.write(response.toString().replace("{","\n{"));
-              //  fileWriter.close();
-                return response.toString().replace("{","\n{");
+                //     File config = new File(username + "_config.txt");
+                //    FileWriter fileWriter2 = new FileWriter(file);
+                //     fileWriter.write(response.toString().replace("{","\n{"));
+                //  fileWriter.close();
+                return response.toString().replace("{", "\n{");
             } else {
-                updateTextPool(true,"Error",response.toString().replace("{","\n{"));
-                return "!"+response.toString().replace("{","\n{");
+                updateTextPool(true, "Error", response.toString().replace("{", "\n{"));
+                return "!" + response.toString().replace("{", "\n{");
             }
 
 
         } catch (IOException e) {
 
             e.printStackTrace();
-            updateTextPool(true,"Error","IO Exception. please contact Injata (the dev):\n" + e.getMessage());
+            updateTextPool(true, "Error", "IO Exception. please contact Injata (the dev):\n" + e.getMessage());
             return "IO Exception. please contact Injata (the dev):\n" + e.getMessage();
         }
 
     }
 
 
-
-    public static AnimeProfile getAnimeProfileJson(String input, String username,String type) {
+    public static AnimeProfile getAnimeProfileJson(String input, String username, String type) {
         AnimeProfile profile = new AnimeProfile();
         try {
             JsonNode node = new ObjectMapper().readTree(input);
 
 
-            profile.setProfileValue("user_name",username);
-         //   profile.setProfileValue("user_total_watching",node.get("data").get("MediaListCollection").get("lists").textValue());
-         //   profile.setProfileValue("user_total_completed",output[0]);
-        //    profile.setProfileValue("user_total_onhold",output[0]);
-        //    profile.setProfileValue("user_total_dropped",output[0]);
-        //    profile.setProfileValue("user_total_plantowatch",output[0]);
+            profile.setProfileValue("user_name", username);
+            //   profile.setProfileValue("user_total_watching",node.get("data").get("MediaListCollection").get("lists").textValue());
+            //   profile.setProfileValue("user_total_completed",output[0]);
+            //    profile.setProfileValue("user_total_onhold",output[0]);
+            //    profile.setProfileValue("user_total_dropped",output[0]);
+            //    profile.setProfileValue("user_total_plantowatch",output[0]);
             HashMap<String, String> hash = new HashMap<>();
 
 
-       int i = 0;
-        while (node.get("data").get("MediaListCollection").get("lists").get(i) != null) {
-            int j = 0;
-            JsonNode currentNode = node.get("data").get("MediaListCollection").get("lists").get(i);
-        //    while (node.get("data").get("MediaListCollection").get("lists").get(i).get(j) != null) {
+            int i = 0;
+            while (node.get("data").get("MediaListCollection").get("lists").get(i) != null) {
+                int j = 0;
+                JsonNode currentNode = node.get("data").get("MediaListCollection").get("lists").get(i);
+                //    while (node.get("data").get("MediaListCollection").get("lists").get(i).get(j) != null) {
 
-            while (currentNode.get("entries").get(j)!=null) {
-                JsonNode animeLogJson = currentNode.get("entries").get(j);
-                String status=node.get("data").get("MediaListCollection").get("lists").get(i).get("name").textValue();
+                while (currentNode.get("entries").get(j) != null) {
+                    JsonNode animeLogJson = currentNode.get("entries").get(j);
+                    String status = node.get("data").get("MediaListCollection").get("lists").get(i).get("name").textValue();
 
-                profile.addProfileValue("user_total_"+status,status);
-                if (!hash.containsKey(animeLogJson.get("id").asText())) {
-                    hash.put(animeLogJson.get("id").asText(),"true");
-                   // System.out.println(animeLogJson.get("media").get("title").get("romaji"));
-                    AnimeLog log = new AnimeLog();
-                    log.score = Double.parseDouble(animeLogJson.get("score").asText());
-                    log.setValue("repeat",animeLogJson.get("repeat").asText());
+                    profile.addProfileValue("user_total_" + status, status);
+                    if (!hash.containsKey(animeLogJson.get("id").asText())) {
+                        hash.put(animeLogJson.get("id").asText(), "true");
+                        // System.out.println(animeLogJson.get("media").get("title").get("romaji"));
+                        AnimeLog log = new AnimeLog();
+                        log.score = Double.parseDouble(animeLogJson.get("score").asText());
+                        log.setValue("repeat", animeLogJson.get("repeat").asText());
 
-                    if (type.equals("Manga: ")) {
-                        log.setValue("series_episodes", animeLogJson.get("media").get("chapters").intValue()+"");
-                    } else {
-                        log.setValue("series_episodes", animeLogJson.get("media").get("episodes").intValue()+"");
+                        if (type.equals("Manga: ")) {
+                            log.setValue("series_episodes", animeLogJson.get("media").get("chapters").intValue() + "");
+                        } else {
+                            log.setValue("series_episodes", animeLogJson.get("media").get("episodes").intValue() + "");
+                        }
+                        // log.setValue("series_episodes",animeLogJson.get("media").get("chapters").intValue()+"");
+                        log.setValue("duration", animeLogJson.get("media").get("duration").intValue() + "");
+                        log.setValue("my_status", animeLogJson.get("status").textValue());
+
+                        JsonNode startedAt = animeLogJson.get("startedAt");
+                        log.setValue("my_start_date", startedAt.get("year").intValue() + "-" + startedAt.get("month").intValue() + "-" + startedAt.get("day").intValue());
+                        JsonNode completedAt = animeLogJson.get("completedAt");
+                        log.setValue("my_finish_date", completedAt.get("year").intValue() + "-" + completedAt.get("month").intValue() + "-" + completedAt.get("day").intValue());
+
+                        JsonNode series_start = animeLogJson.get("media").get("startDate");
+                        log.setValue("series_start", series_start.get("year").intValue() + "-" + series_start.get("month").intValue() + "-" + series_start.get("day").intValue());
+                        JsonNode series_end = animeLogJson.get("media").get("endDate");
+                        log.setValue("series_end", series_end.get("year").intValue() + "-" + series_end.get("month").intValue() + "-" + series_end.get("day").intValue());
+
+
+                        log.setValue("series_title_english", type + animeLogJson.get("media").get("title").get("english").textValue());
+                        if (log.getValue("series_title_english").equals("-1")) {
+                            log.setValue("series_title_english", type + animeLogJson.get("media").get("title").get("romaji").textValue());
+                        }
+                        log.mediaType = type;
+
+                        log.setValue("image", animeLogJson.get("media").get("coverImage").get("medium").textValue());
+                        addLogValueIfNotNull(log, animeLogJson.get("media").get("coverImage"), "color");
+                        log.rawData = animeLogJson;
+
+                        profile.addAnime(log);
                     }
-                   // log.setValue("series_episodes",animeLogJson.get("media").get("chapters").intValue()+"");
-                    log.setValue("duration",animeLogJson.get("media").get("duration").intValue()+"");
-                    log.setValue("my_status",animeLogJson.get("status").textValue());
-
-                    JsonNode startedAt = animeLogJson.get("startedAt");
-                    log.setValue("my_start_date",startedAt.get("year").intValue()+"-"+startedAt.get("month").intValue()+"-"+startedAt.get("day").intValue());
-                    JsonNode completedAt = animeLogJson.get("completedAt");
-                    log.setValue("my_finish_date",completedAt.get("year").intValue()+"-"+completedAt.get("month").intValue()+"-"+completedAt.get("day").intValue());
-
-                    JsonNode series_start = animeLogJson.get("media").get("startDate");
-                    log.setValue("series_start",series_start.get("year").intValue()+"-"+series_start.get("month").intValue()+"-"+series_start.get("day").intValue());
-                    JsonNode series_end = animeLogJson.get("media").get("endDate");
-                    log.setValue("series_end",series_end.get("year").intValue()+"-"+series_end.get("month").intValue()+"-"+series_end.get("day").intValue());
-
-
-
-                    log.setValue("series_title_english",type+animeLogJson.get("media").get("title").get("english").textValue());
-                    if (log.getValue("series_title_english").equals("-1")) {
-                        log.setValue("series_title_english",type+animeLogJson.get("media").get("title").get("romaji").textValue());
-                    }
-                    log.mediaType = type;
-
-                    log.setValue("image",animeLogJson.get("media").get("coverImage").get("medium").textValue());
-                    addLogValueIfNotNull(log,animeLogJson.get("media").get("coverImage"),"color");
-                    log.rawData = animeLogJson;
-
-                    profile.addAnime(log);
+                    j++;
                 }
-                j++;
+
+
+                //     }
+
+                i++;
+
             }
-
-
-
-       //     }
-
-            i++;
-
-        }
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
@@ -748,18 +753,17 @@ public class HelloApplication extends Application {
     }
 
 
-
     public static AnimeProfile getAnimeProfileXML(String input) throws IOException {
 
         AnimeProfile profile = new AnimeProfile();
 
         String[] output = input.split("<anime>");
-        profile.setProfileValueXML("user_name",output[0]);
-        profile.setProfileValueXML("user_total_watching",output[0]);
-        profile.setProfileValueXML("user_total_completed",output[0]);
-        profile.setProfileValueXML("user_total_onhold",output[0]);
-        profile.setProfileValueXML("user_total_dropped",output[0]);
-        profile.setProfileValueXML("user_total_plantowatch",output[0]);
+        profile.setProfileValueXML("user_name", output[0]);
+        profile.setProfileValueXML("user_total_watching", output[0]);
+        profile.setProfileValueXML("user_total_completed", output[0]);
+        profile.setProfileValueXML("user_total_onhold", output[0]);
+        profile.setProfileValueXML("user_total_dropped", output[0]);
+        profile.setProfileValueXML("user_total_plantowatch", output[0]);
 
         for (int i = 1; i < output.length; i++) {
 
@@ -778,7 +782,6 @@ public class HelloApplication extends Application {
             profile.addAnime(anime);
 
 
-
         }
         return profile;
     }
@@ -792,27 +795,22 @@ public class HelloApplication extends Application {
             output[i] = output[i].split("</anime>")[0];
 
 
-
         }
-
-
-
 
 
         return output;
     }
 
     public static String getSingluarValue(String input, String key) {
-        String[] output = input.replace("</","<").split("<"+key+">");
+        String[] output = input.replace("</", "<").split("<" + key + ">");
 
         if (output.length > 1) {
-            return input.replace("</","<").split("<"+key+">")[1];
+            return input.replace("</", "<").split("<" + key + ">")[1];
         } else {
             return "-1";
         }
 
     }
-
 
 
     public static String stringAnilistFile(String input) throws IOException {
@@ -827,9 +825,11 @@ public class HelloApplication extends Application {
         }
         return output;
     }
+
     public static String getAnimeTitle(String input) {
-        return  unWrapCDATA(getSingluarValue(input,"series_title"));
+        return unWrapCDATA(getSingluarValue(input, "series_title"));
     }
+
     public static String unWrapCDATA(String input) {
         return input.substring(9).split("]]>")[0];
     }

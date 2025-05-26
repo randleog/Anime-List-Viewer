@@ -82,7 +82,7 @@ public class MenuTextField extends MenuElement{
         cacheX=getVisibleX();
         cacheY=getVisibleY();
 
-
+        g.setFill(Color.rgb(0,0,0,0.1));
         g.fillRect(cacheX,cacheY,this.width,this.height);
         g.setFont(Font.font("monospace",fontSize));
         if (textPoolRef !=null) {
@@ -186,6 +186,10 @@ public class MenuTextField extends MenuElement{
         }
     }
 
+    private void signalUpdatedText() {
+        HelloApplication.actionButton(keyText+"_"+"違お", this);
+    }
+
     private void typeText(String text) {
         if (parent !=null && this.parent.focusedItem!=this) {
             return;
@@ -193,12 +197,16 @@ public class MenuTextField extends MenuElement{
         if (text.length() > 1) {
             switch (text) {
                 case "BACK_SPACE" -> {
+
                     if (!this.text.isEmpty()) {
+                        signalUpdatedText();
                         this.text = this.text.substring(0,this.text.length()-1);
                     }
                 }
                 case "DELETE" -> {
+
                     if (!this.text.isEmpty()) {
+                        signalUpdatedText();
                         this.text = this.text.substring(1);
                     }
                 }
@@ -209,13 +217,14 @@ public class MenuTextField extends MenuElement{
                     isShift = true;
                 }
                 default-> {
+
                    // System.out.println("unhandled key press input for " + text);
                 }
             }
             return;
         }
         this.text = this.text +(isShift ? text : text.toLowerCase());
-
+        signalUpdatedText();
 
         //DELETE
         //ENTER

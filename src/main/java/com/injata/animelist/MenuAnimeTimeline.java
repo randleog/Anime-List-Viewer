@@ -13,10 +13,10 @@ import java.time.LocalDate;
 import java.util.Date;
 import java.util.TimeZone;
 
+import static com.injata.animelist.Util.*;
 
 
-public class MenuAnimeTimeline extends MenuElement{
-
+public class MenuAnimeTimeline extends MenuElement {
 
 
     public static double minZoom = 1000;
@@ -27,23 +27,21 @@ public class MenuAnimeTimeline extends MenuElement{
     public boolean initialise_zoom = false;
 
 
-
     public static double gap = 75;
 
     public static double zoom_Text_Visible = 0.5;
 
 
-    public double dragXB=0;
-    public double dragYB=0;
-    public double dragX=0;
-    public double dragY=0;
+    public double dragXB = 0;
+    public double dragYB = 0;
+    public double dragX = 0;
+    public double dragY = 0;
 
 
-
-
-    public double zoomScale;
+    private double zoomScale;
 
     private MenuLineGraph lineGraph;
+
 
     private Date dragDate;
 
@@ -54,34 +52,53 @@ public class MenuAnimeTimeline extends MenuElement{
 
         super(x, y, direction);
 
-        lineGraph = new MenuLineGraph(x,y);
+        lineGraph = new MenuLineGraph(x, y);
 
-        lineGraph.direction=MenuDirections.BOTTOM_LEFT;
-        lineGraph.parent=this;
+        lineGraph.direction = MenuDirections.BOTTOM_LEFT;
+        lineGraph.parent = this;
+
+
     }
-
 
 
     public void setProfile(AnimeProfile profile) {
         for (AnimeLog log : profile.getAnimes()) {
-            log.parent=this;
+            log.parent = this;
         }
-        this.profile=profile;
+        this.profile = profile;
 
-        this.startYear= ( new Date(profile.startDate)).getYear()+1900;
-        this.totalYears = (HelloApplication.currentDate.getYear()+1900)-startYear;
+        this.startYear = (new Date(profile.startDate)).getYear() + 1900;
+        this.totalYears = (HelloApplication.currentDate.getYear() + 1900) - startYear;
         dragDate = new Date(profile.startDate);
     }
 
+    public double getZoomScale() {
+        return getAnimatedValue(zoomScale,oldZoom,HelloApplication.currentTime,lastCameraMovement,cameraMovementLength);
+
+    }
+
+    @Override
+    public double getY() {
+        return getAnimatedValue(this.y,oldY,HelloApplication.currentTime,lastCameraMovement,cameraMovementLength);
+
+    }
+    @Override
+    public double getX() {
+        return getAnimatedValue(this.x,oldX,HelloApplication.currentTime,lastCameraMovement,cameraMovementLength);
+
+    }
 
     @Override
     public void drawElement(GraphicsContext g) {
+
+        double x = getX();
+        double y = getY();
         if (profile == null) {
-            g.fillText("ERROR: No profile selected",100,100);
+            g.fillText("ERROR: No profile selected", 100, 100);
             return;
         }
         g.setFill(Color.WHITE);
-        g.setFont(Font.font("monospace",9*zoomScale));
+        g.setFont(Font.font("monospace", 9 * zoomScale));
         if (!initialise_zoom) {
             initialise_zoom = true;
 
@@ -89,8 +106,7 @@ public class MenuAnimeTimeline extends MenuElement{
             zoomScale = 1.0 / ((profile.endDate - profile.startDate) / divisionValue);
             System.out.println("initialised zoom to " + zoomScale);
         }
-
-
+        double zoomScale = getZoomScale();
 
 
 
@@ -99,75 +115,66 @@ public class MenuAnimeTimeline extends MenuElement{
         //       canvas.getGraphz
 
 
-
-
-        double now = getRelativeValue(profile.startDate,HelloApplication.currentTime);
-        double xv = x*zoomScale;
-
+        double now = getRelativeValue(profile.startDate, HelloApplication.currentTime);
+        double xv =getX() * getZoomScale();
 
 
         //now line
 
 
-
         g.setStroke(Color.WHITE);
-        g.fillRect(zoomScale*1000+xv+now*zoomScale
-                ,0,
-                zoomScale*3,
+        g.fillRect(zoomScale * 1000 + xv + now * zoomScale
+                , 0,
+                zoomScale * 3,
                 g.getCanvas().getHeight());
 
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         Date date = new Date(HelloApplication.currentTime);
-        g.fillText("NOW "+date, zoomScale*1010+xv+now*zoomScale,((gap)*zoomScale));
-
+        g.fillText("NOW " + date, zoomScale * 1010 + xv + now * zoomScale, ((gap) * zoomScale));
 
 
         //lines for each year
 
 
+        for (int i = 0; i < totalYears + 1; i++) {
 
-
-
-
-        for (int i = 0; i < totalYears+1; i++) {
-
-            Date yearDate= null;
+            Date yearDate = null;
             //   System.out.println((startYear+i));
             try {
                 //      System.out.println((startYear+i));
-                yearDate = dateFormat.parse((startYear+i)+"-01-01 01:00:00");
+                yearDate = dateFormat.parse((startYear + i) + "-01-01 01:00:00");
             } catch (ParseException e) {
                 throw new RuntimeException(e);
             }
-            double yearTime = getRelativeValue(profile.startDate,yearDate.getTime());
-            g.fillRect(zoomScale*1000+xv+yearTime*zoomScale
-                    ,0,
-                    zoomScale*2,
+            double yearTime = getRelativeValue(profile.startDate, yearDate.getTime());
+            g.fillRect(zoomScale * 1000 + xv + yearTime * zoomScale
+                    , 0,
+                    zoomScale * 2,
                     g.getCanvas().getHeight());
 
-            fillTextIfVisible(g,(startYear+i)+"-01-01",zoomScale * 1010 + xv + yearTime * zoomScale, ((gap) * zoomScale));
+            fillTextIfVisible(g, (startYear + i) + "-01-01", zoomScale * 1010 + xv + yearTime * zoomScale, ((gap) * zoomScale));
 
         }
-
 
 
         int lines = 0;
 
         for (AnimeLog log : profile.getAnimes()) {
-            log.draw(g,zoomScale,profile);
+            log.draw(g, zoomScale, profile);
         }
-        lineGraph.draw(g,zoomScale,profile,dragDate);
-   //     g.setFill(Color.rgb(0,0,0,0.8));
-      //  g.fillRect(0,0,HelloApplication.getCanvasWidth(),Math.max(gap*zoomScale/2,gap*zoomScale/2+y*zoomScale));
+        lineGraph.draw(g, zoomScale, profile, dragDate);
+
+        //     g.setFill(Color.rgb(0,0,0,0.8));
+        //  g.fillRect(0,0,HelloApplication.getCanvasWidth(),Math.max(gap*zoomScale/2,gap*zoomScale/2+y*zoomScale));
         g.setFill(Color.WHITE);
-        g.setFont(Font.font("monospace", FontWeight.BOLD, FontPosture.REGULAR,18*zoomScale));
-        g.fillText(profile.getTitleCard() ,Math.max(0,x*zoomScale),(gap/3.4)*zoomScale+y*zoomScale);
+        g.setFont(Font.font("monospace", FontWeight.BOLD, FontPosture.REGULAR, 18 * zoomScale));
+        g.fillText(profile.getTitleCard(), Math.max(0, x * zoomScale), (gap / 3.4) * zoomScale + y * zoomScale);
     }
 
-    public void fillTextIfVisible(GraphicsContext g,String text, double x, double y) {
+    public void fillTextIfVisible(GraphicsContext g, String text, double x, double y) {
         if (zoomScale < zoom_Text_Visible) {
-            g.fillRect(x, y-zoomScale*4, zoomScale*5*text.split("\n")[0].length(), zoomScale*6);
+            g.fillRect(x, y - zoomScale * 4, zoomScale * 5 * text.split("\n")[0].length(), zoomScale * 6);
         } else {
             if (!(x > HelloApplication.getCanvasWidth() || x < 0 || y > HelloApplication.getCanvasHeight() || y < 0)) {
                 g.fillText(text, x, y);
@@ -175,15 +182,52 @@ public class MenuAnimeTimeline extends MenuElement{
         }
     }
 
+    private long lastCameraMovement = 0;
+    private long cameraMovementLength = 200;
+
+    private double oldY = 0;
+    private double oldX = 0;
+    private double oldZoom = 1;
+
+    private void cameraMovement(double... inputs) {
+
+        if (inputs.length == 0) {
+            return;
+        }
+        oldY = this.y;
+        oldX = this.x;
+        oldZoom = this.zoomScale;
+
+        this.x = inputs[0];
+        this.y = (inputs.length > 1) ? inputs[1] : this.y;
+        this.zoomScale = (inputs.length > 2) ? inputs[2] : this.zoomScale;
+
+        if (HelloApplication.textPool.getOrDefault("animation_level", "0").equals("2")) {
+            lastCameraMovement = HelloApplication.currentTime;
+            HelloApplication.drawBriefly();
+        }
+    }
 
 
     public static double getRelativeValue(long start, long end) {
-        return ((end-start)/5000000.0);
+        return ((end - start) / 5000000.0);
     }
+
     @Override
     public boolean interactElement(String info, boolean mouseDown, double xp, double yp) {
+
+        if (info.equals("search")) {
+
+            double targetZoom = Math.max(zoomScale,2);
+            cameraMovement(xp, yp + 25, targetZoom);
+            return true;
+        }
+
+
         return false;
+
     }
+
 
     @Override
     public boolean scroll(double delta, double xp, double yp) {
@@ -196,29 +240,29 @@ public class MenuAnimeTimeline extends MenuElement{
         double xdiff = distanceNowX - distanceToCenterBeforeX;
         double ydiff = distanceNowY - distanceToCenterBeforeY;
 
-        if (minZoom < zoomScale*zoomFactor) {
-            zoomScale=minZoom;
+        if (minZoom < zoomScale * zoomFactor) {
+            zoomScale = minZoom;
         } else {
             x -= (xdiff / zoomScale) / zoomFactor;
             y -= (ydiff / zoomScale) / zoomFactor;
-            zoomScale=zoomScale*zoomFactor;
+            zoomScale = zoomScale * zoomFactor;
         }
 
-        HelloApplication.textPool.put("zoom",(int)(zoomScale*100)+"");
+        HelloApplication.textPool.put("zoom", (int) (zoomScale * 100) + "");
         return false;
     }
 
-    private final long space = (long)(((1000)*86400000L)/Util.determinedDiff);
-    private final long dayDiff = (long)(86400000L/Util.determinedDiff);
+    private final long space = (long) (((1000) * 86400000L) / Util.determinedDiff);
+    private final long dayDiff = (long) (86400000L / Util.determinedDiff);
+
     @Override
     public boolean drag(double xp, double yp) {
-        x = (dragXB-(dragX-xp)/zoomScale);
-        y = (dragYB-(dragY-yp)/zoomScale);
+        x = (dragXB - (dragX - xp) / zoomScale);
+        y = (dragYB - (dragY - yp) / zoomScale);
 
 
-
-        dragDate = new Date(profile.startDate-(long)(x*dayDiff)+space);
-     //   System.out.println((dragDate.getYear()+1900) + " " + (int)((x)));
+        dragDate = new Date(profile.startDate - (long) (x * dayDiff) + space);
+        //   System.out.println((dragDate.getYear()+1900) + " " + (int)((x)));
 
         return false;
     }
@@ -236,7 +280,7 @@ public class MenuAnimeTimeline extends MenuElement{
         dragX = xp;
         dragY = yp;
         dragXB = x;
-        dragYB=y;
+        dragYB = y;
         return false;
     }
 

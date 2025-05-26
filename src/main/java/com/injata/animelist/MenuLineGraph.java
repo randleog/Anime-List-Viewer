@@ -57,6 +57,8 @@ public class MenuLineGraph extends MenuElement {
         double day = -(parent.x / Util.determinedDiff + 1000 / Util.determinedDiff - AnimeLog.imageWidth / Util.determinedDiff + 1);
         //    System.out.println(day + " " + totalDays);
         double diff = day - (int) day;
+
+       
         double[] xpos = new double[(int) totalDays];
         double[] ypos = new double[(int) totalDays];
         int counted = 0;

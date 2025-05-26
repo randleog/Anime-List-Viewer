@@ -60,6 +60,10 @@ public class Menus {
 
 
         menu2.add(new MenuToggleButton("settings","settings","timeline_Settings_Tab_visibility",0,0,150,75, MenuDirections.TOP_RIGHT));
+        menu2.add(new MenuText("",245,50,"searchResults",MenuDirections.TOP_RIGHT));
+        HelloApplication.updateTextPool(false,"searchResults","");
+        HelloApplication.updateTextPool(false,"animation_level","2");
+        menu2.add(new MenuTextField("","search", "search",350, 0,150,75,MenuDirections.TOP_RIGHT));
         menuPage.setCurrentMenu(menu2);
         menuPage.setWidth(HelloApplication.CANVAS_WIDTH);
         menuPage.setHeight(HelloApplication.CANVAS_HEIGHT);
