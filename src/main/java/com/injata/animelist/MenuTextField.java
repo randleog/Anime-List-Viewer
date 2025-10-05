@@ -190,7 +190,7 @@ public class MenuTextField extends MenuElement {
     }
 
     private void signalUpdatedText() {
-        HelloApplication.actionButton(keyText + "_" + "違お", this);
+        HelloApplication.actionButton(keyText + "_" + "違お:" + text, this);
     }
 
     private int caret = 0;
@@ -203,6 +203,9 @@ public class MenuTextField extends MenuElement {
 
         if (text.length() > 1) {
             switch (text) {
+                case "SPACE" -> {
+                    addText(" ");
+                }
                 case "BACK_SPACE" -> {
 
                     if (!this.text.isEmpty()) {
@@ -263,15 +266,18 @@ public class MenuTextField extends MenuElement {
 
         }
 
+        addText(text);
+        //DELETE
+        //ENTER
+    }
+
+    private void addText(String text) {
         caret +=text.length();
 
         this.text = this.text.substring(0, caret-1)+(isShift ? text : text.toLowerCase())+this.text.substring(caret-1);
         caret = Math.min(caret,this.text.length());
 
         signalUpdatedText();
-
-        //DELETE
-        //ENTER
     }
 
     public void triggerAction() {

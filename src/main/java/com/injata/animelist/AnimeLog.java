@@ -14,9 +14,11 @@ import java.util.HashMap;
 public class AnimeLog extends MenuElement{
 
     public static double gap = 75;
+    public ArrayList<String> relations = new ArrayList<>();
+
     public int episodes;
 
-    public int watchedEpisodes;
+    public int progress;
     public double score;
 
     public long startDate;
@@ -53,6 +55,39 @@ public class AnimeLog extends MenuElement{
 
     private int duration=0;
 
+    public int id;
+
+    private int isFirst = -1;
+
+    private AnimeLog originator = null;
+
+    public static enum relations {
+        ADAPTION,SUMMARY,CHARACTER,SEQUEL,PREQUEL,ALTERNATIVE,OTHER,SIDE_STORY,SPIN_OFF,PARENT;
+    }
+
+    public boolean areYouAFirst() {
+        if (isFirst==-1) {
+            isFirst = (getRelation("PREQUEL")==-1) ? 1 : 0;
+        }
+
+        return isFirst == 1;
+    }
+
+
+    //note: make an enum for ADAPTION, SUMMARY, CHARACTER, SEQUEL, PREQUEL, ALTERNATIVE, OTHER, SIDE_STORY, SPIN_OFF, PARENT
+    public int getRelation(String relationType) {
+        for (String s : relations) {
+            if (s.contains(relationType)) {
+
+                return Integer.parseInt(s.split(",")[0]);
+            }
+        }
+        return -1;
+    }
+
+
+
+
     public static void loadColors () {
         colors = new ArrayList<>();
 
@@ -84,7 +119,7 @@ public class AnimeLog extends MenuElement{
 
 
 
-        double v=Math.ceil(((score/10.0)*colors.size())*10.0)/10.0-1;
+        double v=Math.ceil(((score/100.0)*colors.size())*100.0)/100.0-1;
 
         Integer[] rgb1 = colors.get((int)(v));
         Integer[] rgb2 = colors.get((int)Math.ceil(v));
@@ -117,7 +152,9 @@ public class AnimeLog extends MenuElement{
 
     public status animestatus;
 
-
+    public void setProgress(int progress) {
+        this.progress = progress;
+    }
 
 
 
@@ -214,6 +251,7 @@ public class AnimeLog extends MenuElement{
                                     throw new RuntimeException(e);
                                 }
                             }
+                            System.out.println(id);
                             lastImageLoad = System.currentTimeMillis();
                             image = new Image(getValue("image"), 100, 150, false, false);
 
@@ -235,6 +273,24 @@ public class AnimeLog extends MenuElement{
             g.setFill(Color.WHITE);
             fillTextIfVisible(g, getDisplayString(), 60 * zoomScale, yv - 10 * zoomScale, zoomScale);
 
+
+        }
+
+
+        if (originator == null) {
+            System.out.println(id);
+            originator = profile.getOriginator(id);
+        }
+
+        if (originator == this) {
+
+        } else {
+            fillTextIfVisible(g, "Sequel!", xv + Util.getRelativeValue(profile.startDate, getEndDate()) * zoomScale+1000*zoomScale
+                    , originator.getVisibleY()*zoomScale + zoomScale * (gap / 4) + zoomScale * 25, zoomScale);
+         //   g.fillRect(xv + Util.getRelativeValue(profile.startDate, getEndDate()) * zoomScale+1000*zoomScale
+            //        , originator.getVisibleY()*zoomScale + zoomScale * (gap / 4) + zoomScale * 25,
+            //        10* zoomScale ,
+            //        2 * zoomScale);
 
         }
     }
@@ -316,11 +372,12 @@ public class AnimeLog extends MenuElement{
         startDate = 0;
         endDate = 0;
         score =0;
-        watchedEpisodes = 0;
+        progress = 0;
         episodes = 0;
         animeValues = new HashMap<>();
         animestatus = status.PAUSED;
         rewatches= 0;
+
 
     }
 
@@ -354,7 +411,7 @@ public class AnimeLog extends MenuElement{
                 duration = Integer.parseInt(input);
             }
             case "series_episodes" -> episodes = Integer.parseInt(input);
-            case "my_watched_episodes" -> watchedEpisodes = Integer.parseInt(input);
+            case "my_watched_episodes" -> progress = Integer.parseInt(input);
             case "my_score" -> score = Integer.parseInt(input);
             case "repeat" -> rewatches = Integer.parseInt(input);
             case "my_start_date" -> {
@@ -404,6 +461,9 @@ public class AnimeLog extends MenuElement{
                 }
                 showEndDate = d.getTime();
                 animeValues.put(type,input);
+            }
+            case "animeid" -> {
+                id = Integer.parseInt(input);
             }
             default -> animeValues.put(type,input);
 
@@ -468,14 +528,14 @@ public class AnimeLog extends MenuElement{
             timeWatching=Integer.MAX_VALUE;
         }
 
-        return ((episodes*1.0)/Math.max(timeWatching,1.0));
+        return ((progress*1.0)/Math.max(timeWatching,1.0));
     }
 
     public int getEpisodes() {
         return episodes;
     }
-    public int getWatchedEpisodes() {
-        return watchedEpisodes;
+    public int getProgress() {
+        return progress;
     }
     public int getScore() {
         return (int)(score*10);
@@ -497,7 +557,7 @@ public class AnimeLog extends MenuElement{
     public int getValueInt(String type) {
         return switch(type) {
             case "series_episodes" -> episodes;
-            case "my_watched_episodes" -> watchedEpisodes;
+            case "my_watched_episodes" -> progress;
             case "my_score" -> getScore();
             default -> Integer.parseInt(animeValues.getOrDefault(type,"0"));
 
@@ -506,7 +566,7 @@ public class AnimeLog extends MenuElement{
     public String getValue(String type) {
         return switch(type) {
             case "series_episodes" -> episodes+"";
-            case "my_watched_episodes" -> watchedEpisodes+"";
+            case "my_watched_episodes" -> progress +"";
             case "my_score" -> score+"";
             case "color" -> animeValues.getOrDefault(type,"#ffffff");
             default -> animeValues.getOrDefault(type,"-1");

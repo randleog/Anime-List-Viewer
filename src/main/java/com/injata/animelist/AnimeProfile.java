@@ -1,5 +1,7 @@
 package com.injata.animelist;
 
+import javax.swing.plaf.synth.SynthTextAreaUI;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -13,6 +15,8 @@ public class AnimeProfile {
 
 
     private ArrayList<AnimeLog> animes;
+
+    private HashMap<Integer, AnimeLog> animeMap = new HashMap<>();
 
     private ArrayList<AnimeLog> bufferAnimes;
 
@@ -28,12 +32,34 @@ public class AnimeProfile {
     public boolean includePlanning = false;
     public boolean includePausedDropped = false;
 
+    public int id;
+
+    public AnimeLog getAnimeFromId(int id) {
+        return animeMap.getOrDefault(id,null);
+    }
+
+    //returns the first season of a particular anime
+    public AnimeLog getOriginator(int id) {
+        if (animeMap.get(id) == null ) {
+            System.out.println("issue: you are trying to get an anime which doesn't exist?");
+            return null;
+        }
+        int prequel = animeMap.get(id).getRelation("PREQUEL");
+        if (prequel==-1 || animeMap.get(prequel)== null) {
+            return animeMap.get(id);
+        } else {
+
+            return getOriginator(prequel);
+        }
+    }
+
     public void addAnime(AnimeLog anime) {
 
 
-
-
+        //the same object stored in a list and a hashmap. changes to one apply to the other.
         animes.add(anime);
+        animeMap.put(anime.id,anime);
+
         long startDateValue = anime.startDate;
         if (startDateValue < startDate && !(startDateValue <= 0) && startDateValue !=Long.MAX_VALUE) {
             startDate = startDateValue;
@@ -44,26 +70,32 @@ public class AnimeProfile {
             endDate = endDateValue;
         }
        // System.out.println((anime.getStartDate()-anime.getEndDate())/864000000);
-
+       if ((new File(id + "\\" + anime.id + "_list.txt")).exists()) {
+            //add the anime logs file history (it wont be re-ran every time, so most anime will probably not have one recorded yet
+           System.out.println("it indeed exists");
+       }
     }
 
 
     public void applyLineGraph() {
         for (AnimeLog anime : animes) {
-            if (anime.getEndDate() - anime.getStartDate() > 0) {
-                int start =  (int) ((anime.getStartDate()-startDate) / 86400000);
-                int end = (int)((anime.getEndDate() -startDate)/ 86400000);
-                for (int i = start; i <= end; i++) {
-                    String key = i + "_pace";
-                     dayLog.put(key,dayLog.getOrDefault(key,0.0)+anime.getWatchPace()*anime.getDuration());
 
-                    key = i + "_count";
-                    dayLog.put(key,dayLog.getOrDefault(key,0.0)+1);
+                if (anime.getEndDate() - anime.getStartDate() > 0) {
+                    int start = (int) ((anime.getStartDate() - startDate) / 86400000);
+                    int end = (int) ((anime.getEndDate() - startDate) / 86400000);
+                    for (int i = start; i <= end; i++) {
+                        String key = i + "_pace";
+                        dayLog.put(key, dayLog.getOrDefault(key, 0.0) + anime.getWatchPace() * anime.getDuration());
 
+                        key = i + "_count";
+                        dayLog.put(key, dayLog.getOrDefault(key, 0.0) + 1);
+
+                    }
                 }
-            }
+
         }
     }
+
 
 
     public void applyFilter(String order, boolean asc) {
@@ -107,12 +139,14 @@ public class AnimeProfile {
         profileValues = new HashMap<>();
         animes = new ArrayList<>();
         lists = new ArrayList<>();
+
     }
     public AnimeProfile(String... values) {
         profileValues = new HashMap<>();
         bufferAnimes= new ArrayList<>();
         lists = new ArrayList<>();
         animes = new ArrayList<>();
+
     }
 
     public void setProfileValueXML(String key, String value) {

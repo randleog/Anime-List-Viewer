@@ -29,17 +29,10 @@ import java.util.*;
 
 
 //todo:
-
-//fix the toggle buttons looking selected when they arent -> caused by having seperate boolean to read if it should appear on
-///compare option (allow to compare you list to another person)
-
-//- suggsted to watch next algorithm [多分 needs to be a button you press seperately]
-//- find the list of activities - each episode you watched log of the show should appear on the timeline
-//- add toggle to show manga or not
-//- add a reduce animations option - only ticks when drawn new frame, and no animations for sorting the list
+//https://injata.atlassian.net/jira/software/projects/CPG/list
 public class HelloApplication extends Application {
 
-
+    public static final int MAX_ACTIVITY_COUNT = 100;
     public static boolean imageChanged = false;
 
     public static String directory = "";
@@ -134,6 +127,10 @@ public class HelloApplication extends Application {
         
      */
 
+
+        //mine is 6168637
+        //test anime is 108268#
+        //  System.out.println(queryAnimeHistory(6168637,108268));
 
     }
 
@@ -337,6 +334,34 @@ public class HelloApplication extends Application {
     private static String lastSearch = "";
     private static ArrayList<AnimeLog> searchResults = new ArrayList<>();
 
+    private static void searchText(String input) {
+        String anime = input;
+        System.out.println("searching for " + anime);
+
+
+        lastSearch = anime;
+        ArrayList<AnimeLog> list = profile.getAnimes();
+        searchResults = new ArrayList<>();
+        for (AnimeLog log : list) {
+            if (log.getDisplayName().toLowerCase().contains(anime.toLowerCase())) {
+                searchResults.add(log);
+            }
+        }
+
+
+        if (searchingIndex >= searchResults.size()) {
+            searchingIndex = 0;
+        }
+        if (searchResults.size() < 1) {
+            return;
+
+        }
+        AnimeLog found = searchResults.get(searchingIndex);
+        System.out.println("found " + found.getInfo() + " " + searchingIndex);
+        updateTextPool(false, "searchResults", (searchingIndex + 1) + "/" + searchResults.size());
+        currentMenu.interactElement("search", false, -found.x, -found.y);
+    }
+
 
     public static void actionButton(String action, MenuElement element) {
 
@@ -358,39 +383,22 @@ public class HelloApplication extends Application {
                 profile.orderList(textPool.getOrDefault("sort", "start"), textPool.getOrDefault("sort_reverse", "1").equals("1"));
             }
             case "search_違お" -> {
-                updateTextPool(false, "searchResults", "");
-                searchingIndex = 0;
-                searchResults = new ArrayList<>();
-                lastSearch = "";
+                if (input.isEmpty()) {
+                    updateTextPool(false, "searchResults", "");
+                    searchingIndex = 0;
+                    searchResults = new ArrayList<>();
+                    lastSearch = "";
+                } else {
+                    searchText(input);
+                }
+
+
             }
             case "search" -> {
-                String anime = input;
-                System.out.println("searching for " + anime);
-
-                if (lastSearch.equals(anime)) {
+                if (lastSearch.equals(input)) {
                     searchingIndex++;
                 }
-                lastSearch = anime;
-                ArrayList<AnimeLog> list = profile.getAnimes();
-                searchResults = new ArrayList<>();
-                for (AnimeLog log : list) {
-                    if (log.getDisplayName().toLowerCase().contains(anime.toLowerCase())) {
-                        searchResults.add(log);
-                    }
-                }
-
-
-                if (searchingIndex >= searchResults.size()) {
-                    searchingIndex = 0;
-                }
-                if (searchResults.size() < 1) {
-                    return;
-
-                }
-                AnimeLog found = searchResults.get(searchingIndex);
-                System.out.println("found " + found.getInfo() + " " + searchingIndex);
-                updateTextPool(false, "searchResults", (searchingIndex + 1) + "/" + searchResults.size());
-                currentMenu.interactElement("search", false, -found.x, -found.y);
+                searchText(input);
 
 
             }
@@ -501,7 +509,7 @@ public class HelloApplication extends Application {
 //}
 
     public static String queryAnilistAPIManga(String username) {
-        String query = "query  { MediaListCollection(type: MANGA userName: \"" + username + "\") { lists { name entries { id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { id coverImage {extraLarge large medium color}  title { romaji english } chapters duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
+        String query = "query  { MediaListCollection(type: MANGA userName: \"" + username + "\") { user {id} lists { name entries { id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { id coverImage {extraLarge large medium color}  title { romaji english } chapters duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
         ObjectNode json = new ObjectMapper().createObjectNode();
         json.put("query", query);
 
@@ -581,8 +589,138 @@ public class HelloApplication extends Application {
 
     }
 
+    //query for finding the anime activity history of a specific anime:
+    /* Page(page:0,perPage: 100) { activities(userId: 6168637, type: ANIME_LIST, mediaId: 108268) { ... on ListActivity { media { id title { english } } createdAt likeCount progress status type siteUrl}} }}
+
+     */
+
+    //checklist:
+    //per anime, i can query the most recent 100 activity logs of that user
+    //as part of the main query, i have added info about the id of the anime, and the anime relations (sequel and prequel)
+    //
+    //#1 I should next save the id per anime to the animelog
+    //#2 then i should use delayed saving to slowly collect the info about each anime watch history.
+    //#3 i need to add a setting to show anime only per franchise so you have the full list of logs in one line
+    public static String queryAnimeHistory(int userId, int animeId) {
+        String query = "query  {\n" +
+                "  Page(page: 0, perPage: " + MAX_ACTIVITY_COUNT + " ) {\n" +
+                "    activities(userId: " + userId + ", type: ANIME_LIST, mediaId:  " + animeId + ") {\n" +
+                "      ... on ListActivity {\n" +
+                "        media {\n" +
+                "          id\n" +
+                "          title {\n" +
+                "            english\n" +
+                "          }\n" +
+                "        }\n" +
+                "        createdAt\n" +
+                "        likeCount\n" +
+                "        progress\n" +
+                "        status\n" +
+                "        type\n" +
+                "        siteUrl\n" +
+                "      }\n" +
+                "    }\n" +
+                "  }\n" +
+                "}";
+        ObjectNode json = new ObjectMapper().createObjectNode();
+        json.put("query", query);
+
+
+        try {
+            URL url = new URL("https://graphql.anilist.co");
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+            con.setRequestMethod("POST");
+            con.setRequestProperty("Content-Type", "application/json");
+            con.setRequestProperty("Accept", "application/json");
+            con.setDoOutput(true);
+            con.setDoInput(true);
+            updateTextPool(true, "Error", "Anilist connection established.\nRequesting information...");
+
+            //   con.connect();
+
+
+            OutputStream out = con.getOutputStream();
+            // System.out.println(json.toString());
+            out.write(json.toString().getBytes());
+
+            int statusCode = con.getResponseCode();
+
+            InputStream is = null;
+
+            if (statusCode >= 200 && statusCode < 400) {
+                is = con.getInputStream();
+                System.out.println("managed to get input");
+
+            } else {
+
+                is = con.getErrorStream();
+                System.out.println("Response Code:"
+                        + con.getResponseCode());
+                System.out.println(
+                        "Response Message:"
+                                + con.getResponseMessage());
+                //        return "Response Code:\n"
+                //              + con.getResponseCode()+"\n"+ "Response Message:\n" + con.getResponseMessage();
+            }
+
+
+            updateTextPool(true, "Error", "Anilist API request successful.\nCompiling information...");
+
+
+            BufferedReader responseReader = new BufferedReader(new InputStreamReader(is));
+
+            String inputLine;
+            StringBuffer response = new StringBuffer();
+
+            while ((inputLine = responseReader.readLine()) != null) {
+                response.append(inputLine);
+            }
+            responseReader.close();
+            if (statusCode == 200) {//&& SAVE_FILES_ENABLED
+                if (!new File(userId + "\\").exists()) {
+                    (new File(userId + "\\")).mkdir();
+                }
+                File file = new File(userId + "\\" + animeId + "_list.txt");
+                FileWriter fileWriter = new FileWriter(file);
+                fileWriter.write(response.toString().replace("{", "\n{"));
+                fileWriter.close();
+                //     File config = new File(username + "_config.txt");
+                //    FileWriter fileWriter2 = new FileWriter(file);
+                //     fileWriter.write(response.toString().replace("{","\n{"));
+                //  fileWriter.close();
+                return response.toString().replace("{", "\n{");
+            } else {
+                updateTextPool(true, "Error", response.toString().replace("{", "\n{"));
+                return "!" + response.toString().replace("{", "\n{");
+            }
+
+
+        } catch (IOException e) {
+
+            e.printStackTrace();
+            updateTextPool(true, "Error", "IO Exception. please contact Injata (the dev):\n" + e.getMessage());
+            return "IO Exception. please contact Injata (the dev):\n" + e.getMessage();
+        }
+
+    }
+
+
     public static String queryAnilistAPI(String username) {
-        String query = "query  { MediaListCollection(type: ANIME userName: \"" + username + "\") { lists { name entries { id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { id coverImage {extraLarge large medium color}  title { romaji english } episodes duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
+        String query = "query  { MediaListCollection(type: ANIME userName: \"" + username + "\") { user {id } lists { name entries {  id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { " +
+                "relations {\n" +
+                "         \n" +
+                "            edges {\n" +
+                "              relationType\n" +
+                "              node {\n" +
+
+                "                id title {\n" +
+                "                  english\n" +
+                "                }\n" +
+                "              }\n" +
+                "            }\n" +
+                "          }\n" +
+                "id coverImage {extraLarge large medium color}  title { romaji english } episodes duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
         ObjectNode json = new ObjectMapper().createObjectNode();
         json.put("query", query);
 
@@ -663,6 +801,13 @@ public class HelloApplication extends Application {
     }
 
 
+    // public static ArrayList<AnimeActivity> getAnimeActivityHistory() {
+   //if (file exists()) { read file} else, if the time since the last file generated is larger than 20 seconds, write a new file(QueryAnimeHistory) and output that.
+    //this should therefore act as a delayed sequencer, as only one of the "writing to file" should occur at any one time.
+
+//}
+
+
     public static AnimeProfile getAnimeProfileJson(String input, String username, String type) {
         AnimeProfile profile = new AnimeProfile();
         try {
@@ -670,6 +815,10 @@ public class HelloApplication extends Application {
 
 
             profile.setProfileValue("user_name", username);
+
+            profile.id = node.get("data").get("MediaListCollection").get("user").get("id").asInt();
+
+
             //   profile.setProfileValue("user_total_watching",node.get("data").get("MediaListCollection").get("lists").textValue());
             //   profile.setProfileValue("user_total_completed",output[0]);
             //    profile.setProfileValue("user_total_onhold",output[0]);
@@ -684,6 +833,7 @@ public class HelloApplication extends Application {
                 JsonNode currentNode = node.get("data").get("MediaListCollection").get("lists").get(i);
                 //    while (node.get("data").get("MediaListCollection").get("lists").get(i).get(j) != null) {
 
+
                 while (currentNode.get("entries").get(j) != null) {
                     JsonNode animeLogJson = currentNode.get("entries").get(j);
                     String status = node.get("data").get("MediaListCollection").get("lists").get(i).get("name").textValue();
@@ -693,6 +843,7 @@ public class HelloApplication extends Application {
                         hash.put(animeLogJson.get("id").asText(), "true");
                         // System.out.println(animeLogJson.get("media").get("title").get("romaji"));
                         AnimeLog log = new AnimeLog();
+                        log.id = animeLogJson.get("media").get("id").intValue();
                         log.score = Double.parseDouble(animeLogJson.get("score").asText());
                         log.setValue("repeat", animeLogJson.get("repeat").asText());
 
@@ -701,6 +852,7 @@ public class HelloApplication extends Application {
                         } else {
                             log.setValue("series_episodes", animeLogJson.get("media").get("episodes").intValue() + "");
                         }
+                        log.setProgress(animeLogJson.get("progress").intValue());
                         // log.setValue("series_episodes",animeLogJson.get("media").get("chapters").intValue()+"");
                         log.setValue("duration", animeLogJson.get("media").get("duration").intValue() + "");
                         log.setValue("my_status", animeLogJson.get("status").textValue());
@@ -727,8 +879,21 @@ public class HelloApplication extends Application {
                         log.rawData = animeLogJson;
 
                         profile.addAnime(log);
+
+
+                        int x = 0;
+
+                        if (animeLogJson.get("media").get("relations") != null) {
+                            while (animeLogJson.get("media").get("relations").get("edges").get(x) != null) {
+                                log.relations.add(animeLogJson.get("media").get("relations").get("edges").get(x).get("node").get("id").intValue() + "," + "," + animeLogJson.get("media").get("relations").get("edges").get(x).get("relationType").textValue());
+                                System.out.println(animeLogJson.get("media").get("relations").get("edges").get(x).get("node").get("id").intValue() + "," + animeLogJson.get("media").get("relations").get("edges").get(x).get("relationType").textValue());
+                                x++;
+                            }
+                        }
                     }
                     j++;
+
+
                 }
 
 
@@ -882,3 +1047,4 @@ public class HelloApplication extends Application {
 
 
 }
+
