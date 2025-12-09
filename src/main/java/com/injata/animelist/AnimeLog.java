@@ -1,6 +1,7 @@
 package com.injata.animelist;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import eu.hansolo.tilesfx.skins.HighLowTileSkin;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.paint.Color;
@@ -11,10 +12,19 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 
-public class AnimeLog extends MenuElement{
+public class AnimeLog extends MenuElement {
+
+
+    public static int max_score_value = 100;
 
     public static double gap = 75;
     public ArrayList<String> relations = new ArrayList<>();
+
+
+    public ArrayList<String[]> activityLog = new ArrayList<>();
+
+
+    public boolean isManga = false;
 
     public int episodes;
 
@@ -47,13 +57,15 @@ public class AnimeLog extends MenuElement{
 
     public Color color;
 
+    public String format = "Anime";
+
     public static double lines_visible = 1.5;
 
     public static double max_text_Size_zoom = 2;
-    public static double imageWidth = gap*0.667;
-    public static double imageHeight = gap*0.95;
+    public static double imageWidth = gap * 0.667;
+    public static double imageHeight = gap * 0.95;
 
-    private int duration=0;
+    private int duration = 0;
 
     public int id;
 
@@ -62,12 +74,29 @@ public class AnimeLog extends MenuElement{
     private AnimeLog originator = null;
 
     public static enum relations {
-        ADAPTION,SUMMARY,CHARACTER,SEQUEL,PREQUEL,ALTERNATIVE,OTHER,SIDE_STORY,SPIN_OFF,PARENT;
+        ADAPTION, SUMMARY, CHARACTER, SEQUEL, PREQUEL, ALTERNATIVE, OTHER, SIDE_STORY, SPIN_OFF, PARENT;
+    }
+
+    boolean hasCheckedDays = false;
+    double days = 0;
+
+    private ArrayList<AnimeActivityLog> history;
+
+    public void setActivityHistory(ArrayList<AnimeActivityLog> history) {
+        this.history = history;
+    }
+
+    public double getDays() {
+        if (!hasCheckedDays) {
+            days = Util.getAnimeDayDifference(startDate, endDate);
+        }
+        return days;
+
     }
 
     public boolean areYouAFirst() {
-        if (isFirst==-1) {
-            isFirst = (getRelation("PREQUEL")==-1) ? 1 : 0;
+        if (isFirst == -1) {
+            isFirst = (getRelation("PREQUEL") == -1) ? 1 : 0;
         }
 
         return isFirst == 1;
@@ -86,65 +115,59 @@ public class AnimeLog extends MenuElement{
     }
 
 
-
-
-    public static void loadColors () {
+    public static void loadColors() {
         colors = new ArrayList<>();
 
-        colors.add(new Integer[]{0,0,0});
-        colors.add(new Integer[]{30,0,0});
-        colors.add(new Integer[]{55,0,0});
-        colors.add(new Integer[]{80,0,0});
-        colors.add(new Integer[]{105,0,0});
-        colors.add(new Integer[]{130,0,0});
-        colors.add(new Integer[]{180,0,0});
-        colors.add(new Integer[]{255,30,0});
-        colors.add(new Integer[]{255,70,0});
-        colors.add(new Integer[]{250,80,0});
-        colors.add(new Integer[]{240,100,0});
-        colors.add(new Integer[]{230,115,0});
-        colors.add(new Integer[]{210,135,0});
-        colors.add(new Integer[]{190,150,0});
-        colors.add(new Integer[]{180,180,0});
-        colors.add(new Integer[]{170,180,0});
-        colors.add(new Integer[]{160,190,0});
-        colors.add(new Integer[]{150,200,0});
-        colors.add(new Integer[]{0,255,0});
-        colors.add(new Integer[]{0,255,180});
-        colors.add(new Integer[]{0,255,320});
+        colors.add(new Integer[]{0, 0, 0});
+        colors.add(new Integer[]{30, 0, 0});
+        colors.add(new Integer[]{55, 0, 0});
+        colors.add(new Integer[]{80, 0, 0});
+        colors.add(new Integer[]{105, 0, 0});
+        colors.add(new Integer[]{130, 0, 0});
+        colors.add(new Integer[]{180, 0, 0});
+        colors.add(new Integer[]{255, 30, 0});
+        colors.add(new Integer[]{255, 70, 0});
+        colors.add(new Integer[]{250, 80, 0});
+        colors.add(new Integer[]{240, 100, 0});
+        colors.add(new Integer[]{230, 115, 0});
+        colors.add(new Integer[]{210, 135, 0});
+        colors.add(new Integer[]{190, 150, 0});
+        colors.add(new Integer[]{180, 180, 0});
+        colors.add(new Integer[]{170, 180, 0});
+        colors.add(new Integer[]{160, 190, 0});
+        colors.add(new Integer[]{150, 200, 0});
+        colors.add(new Integer[]{0, 255, 0});
+        colors.add(new Integer[]{0, 255, 180});
+        colors.add(new Integer[]{0, 255, 320});
 
     }
 
-    public static Color getColorFromScore (double score){
+    public static Color getColorFromScore(double score) {
 
 
+        double v = Math.ceil(((score / 100.0) * colors.size()) * 100.0) / 100.0 - 1;
 
-        double v=Math.ceil(((score/100.0)*colors.size())*100.0)/100.0-1;
-
-        Integer[] rgb1 = colors.get((int)(v));
-        Integer[] rgb2 = colors.get((int)Math.ceil(v));
-
+        Integer[] rgb1 = colors.get((int) (v));
+        Integer[] rgb2 = colors.get((int) Math.ceil(v));
 
 
+        double rgb2Fraction = ((v) - (int) (v));
+        double rgb1Fraction = 1 - ((v) - (int) (v));
+        //      System.out.println(v + " r:"+((int)Math.min(255,(rgb1[0]*rgb1Fraction+rgb2[0]*rgb2Fraction)))+" g:"+Math.min(255,(int)(rgb1[1]*rgb1Fraction+rgb2[1]*rgb2Fraction))+ " b:"+Math.min(255,(int)(rgb1[2]*rgb1Fraction+rgb2[2]*rgb2Fraction)));
 
-        double rgb2Fraction = ((v)-(int)(v));
-        double rgb1Fraction = 1-((v)-(int)(v));
-  //      System.out.println(v + " r:"+((int)Math.min(255,(rgb1[0]*rgb1Fraction+rgb2[0]*rgb2Fraction)))+" g:"+Math.min(255,(int)(rgb1[1]*rgb1Fraction+rgb2[1]*rgb2Fraction))+ " b:"+Math.min(255,(int)(rgb1[2]*rgb1Fraction+rgb2[2]*rgb2Fraction)));
-
-        return Color.rgb((int)Math.min(255,(rgb1[0]*rgb1Fraction+rgb2[0]*rgb2Fraction)),Math.min(255,(int)(rgb1[1]*rgb1Fraction+rgb2[1]*rgb2Fraction)),Math.min(255,(int)(rgb1[2]*rgb1Fraction+rgb2[2]*rgb2Fraction)));
+        return Color.rgb((int) Math.min(255, (rgb1[0] * rgb1Fraction + rgb2[0] * rgb2Fraction)), Math.min(255, (int) (rgb1[1] * rgb1Fraction + rgb2[1] * rgb2Fraction)), Math.min(255, (int) (rgb1[2] * rgb1Fraction + rgb2[2] * rgb2Fraction)));
     }
 
 
-    public void fillTextIfVisible(GraphicsContext g,String text, double x, double y, double zoomScale) {
+    public void fillTextIfVisible(GraphicsContext g, String text, double x, double y, double zoomScale) {
         if (zoomScale < MenuAnimeTimeline.zoom_Text_Visible) {
-            g.fillRect(x, y-zoomScale*4, zoomScale*5*text.split("\n")[0].length(), zoomScale*6);
+            g.fillRect(x, y - zoomScale * 4, zoomScale * 5 * text.split("\n")[0].length(), zoomScale * 6);
         } else {
             if (!(x > HelloApplication.getCanvasWidth() || x < 0 || y > HelloApplication.getCanvasHeight() || y < 0)) {
                 g.fillText(text, x, y);
             }
         }
     }
-
 
 
     public boolean findingImage = false;
@@ -155,8 +178,6 @@ public class AnimeLog extends MenuElement{
     public void setProgress(int progress) {
         this.progress = progress;
     }
-
-
 
 
     public void draw(GraphicsContext g, double zoomScale, AnimeProfile profile) {
@@ -251,7 +272,7 @@ public class AnimeLog extends MenuElement{
                                     throw new RuntimeException(e);
                                 }
                             }
-                            System.out.println(id);
+//System.out.println(id);
                             lastImageLoad = System.currentTimeMillis();
                             image = new Image(getValue("image"), 100, 150, false, false);
 
@@ -277,22 +298,156 @@ public class AnimeLog extends MenuElement{
         }
 
 
-        if (originator == null) {
-            System.out.println(id);
-            originator = profile.getOriginator(id);
+        if (HelloApplication.mouseY + 150 > yv && HelloApplication.mouseY - 150 * zoomScale < yv) {
+            if (originator == null) {
+                // System.out.println(id);
+                originator = profile.getOriginator(id);
+            }
+            if (originator == this) {
+
+            } else {
+                fillTextIfVisible(g, "Sequel!", xv + Util.getRelativeValue(profile.startDate, getEndDate()) * zoomScale + 1000 * zoomScale
+                        , originator.getVisibleY() * zoomScale + zoomScale * (gap / 4) + zoomScale * 25, zoomScale);
+                //   g.fillRect(xv + Util.getRelativeValue(profile.startDate, getEndDate()) * zoomScale+1000*zoomScale
+                //        , originator.getVisibleY()*zoomScale + zoomScale * (gap / 4) + zoomScale * 25,
+                //        10* zoomScale ,
+                //        2 * zoomScale);
+
+            }
+
+
+            if (history != null) {
+
+                for (AnimeActivityLog log : history) {
+                    g.setFill(log.getActivityType().getColor());
+                    // System.out.println(profile.startDate + "  "+ log.getStart());
+                    log.getActivityType().draw(g, xv, yv, zoomScale, gap, log, profile);
+
+
+                }
+            }
+        }
+    }
+
+
+    public void getAnimePaceAtDays(long startDate, HashMap<String, Double> dayLog, String mediaKey) {
+        if (animestatus==status.PAUSED) {
+            return;
+        }
+        int start = (int) ((getStartDate() - startDate) / 86400000);
+        int end = (int) ((getEndDate() - startDate) / 86400000);
+        if (start < 0) {
+            start = end;
         }
 
-        if (originator == this) {
+        double multiplier = getDuration()*2;
+        if (multiplier == 0) {
+            multiplier = 2.0;
+        }
+        if (mediaKey.equalsIgnoreCase("Manga")) {
+            multiplier = multiplier*6;
+        }
 
+      //  if (format != null)
+        if (format != null && format.equalsIgnoreCase("NOVEL")) {
+            multiplier = 2.0*multiplier;
+        }
+        //  int lastAccountedEpisode = 1;
+        int lastAccountedTime = start;
+        int completedEpisodes = getProgress();
+        if (animestatus==status.COMPLETED || animestatus == status.REPEATING) {
+            completedEpisodes = getEpisodes();
+        }
+        int accountedForEpisodes = 0;
+        int lastEpisodeAccounted = 0;
+
+        int accountedForRewatchEpisodes = 0;
+        int lastRewatchedEpisodeAccounted = 0;
+
+        if (history != null) {
+
+            for (AnimeActivityLog log : history) {
+                switch (log.getActivityType()) {
+                    case AnimeActivityLog.ACTIVITY_TYPE.WATCHED_EPISODE,AnimeActivityLog.ACTIVITY_TYPE.READ_CHAPTER -> {
+
+                        int logDay = Math.min(Math.max((int)((log.getStart()-startDate)/ 86400000),start),end);
+                        addToDayLog(dayLog,log.getEpisodeCount(),lastAccountedTime,logDay,logDay-lastAccountedTime,mediaKey,0,multiplier);
+                        accountedForEpisodes+=log.getEpisodeCount();
+                        lastEpisodeAccounted = log.getLastEpisode();
+
+                        lastAccountedTime = logDay;
+                    }
+                    case AnimeActivityLog.ACTIVITY_TYPE.REWATCHED_EPISODE,AnimeActivityLog.ACTIVITY_TYPE.REREAD_CHAPTER -> {
+
+                        int logDay = (int)((log.getStart()-startDate)/ 86400000);
+                        if (lastAccountedTime ==0) {
+                            lastAccountedTime = logDay;
+                        }
+                        addToDayLog(dayLog,log.getEpisodeCount(),lastAccountedTime,logDay,logDay-lastAccountedTime,"Rewatch",0,multiplier);
+
+
+                        accountedForRewatchEpisodes+=log.getEpisodeCount();
+                        lastRewatchedEpisodeAccounted = log.getLastEpisode();
+
+
+                        lastAccountedTime = logDay;
+                    }
+                    case AnimeActivityLog.ACTIVITY_TYPE.REWATCHED -> {
+
+
+                        int logDay = (int)((log.getStart()-startDate)/ 86400000);
+                        addToDayLog(dayLog,(getEpisodes()-accountedForRewatchEpisodes),lastAccountedTime,logDay,logDay-lastAccountedTime,"Rewatch",0,multiplier);
+
+                        accountedForRewatchEpisodes = 0;
+                        lastRewatchedEpisodeAccounted = 0;
+                        lastAccountedTime = 0;
+
+
+                    }
+                    case AnimeActivityLog.ACTIVITY_TYPE.COMPLETED -> {
+
+
+                        addToDayLog(dayLog,(getEpisodes()-lastEpisodeAccounted),lastAccountedTime,end,end-lastAccountedTime,mediaKey,0,multiplier);
+                        accountedForEpisodes+=(getEpisodes()-lastEpisodeAccounted);
+                        lastAccountedTime = 0;
+                        //     lastEpisodeAccounted = log.getLastEpisode();
+                    }
+                }
+
+            }
         } else {
-            fillTextIfVisible(g, "Sequel!", xv + Util.getRelativeValue(profile.startDate, getEndDate()) * zoomScale+1000*zoomScale
-                    , originator.getVisibleY()*zoomScale + zoomScale * (gap / 4) + zoomScale * 25, zoomScale);
-         //   g.fillRect(xv + Util.getRelativeValue(profile.startDate, getEndDate()) * zoomScale+1000*zoomScale
-            //        , originator.getVisibleY()*zoomScale + zoomScale * (gap / 4) + zoomScale * 25,
-            //        10* zoomScale ,
-            //        2 * zoomScale);
+            addToDayLog(dayLog,completedEpisodes,start,end,end-start,mediaKey,0,multiplier);
+            accountedForEpisodes = getEpisodes();
+        }
+        if (animestatus==status.COMPLETED || animestatus==status.REPEATING ) {
+            int topup = Math.max((getEpisodes()- accountedForEpisodes),0);
+            addToDayLog(dayLog, topup, start, end, end - start, mediaKey, 1,multiplier);
+        }
+        //  System.out.println("accounted for episodes: " + accountedForEpisodes + "/" + getProgress() );
+
+
+    }
+
+
+    public void addToDayLog(HashMap<String, Double> dayLog, double pace, int startDay, int endDay, int dayCount, String mediaKey, int ongoing, double multiplier) {
+        if (dayCount > 0) {
+            for (int i = 0; i <= dayCount; i++) {
+
+                dayLog.put(((startDay + i) + "_" + mediaKey + "Pace"), dayLog.getOrDefault(((startDay + i)  + "_" + mediaKey + "Pace"), 0.0) + pace*multiplier /(1.0*( (dayCount + 1))));
+                //System.out.println("pace of " + (endDay - startDay + 1));
+
+                dayLog.put(((startDay + i)  + "_" + mediaKey + "Count"), dayLog.getOrDefault(((startDay + i)  + "_" + mediaKey + "Count"), 0.0) + ongoing);
+
+
+            }
+        } else if (startDay == endDay) {
+            dayLog.put((startDay + "_" + mediaKey + "Pace"), dayLog.getOrDefault((startDay + "_" + mediaKey + "Pace"), 0.0) + pace*multiplier);
+
+            dayLog.put((startDay + "_" + mediaKey + "Count"), dayLog.getOrDefault((startDay + "_" + mediaKey + "Count"), 0.0) + 1);
 
         }
+
+
     }
 
     @Override
@@ -368,54 +523,75 @@ public class AnimeLog extends MenuElement{
 
 
     public AnimeLog() {
-        super(0,0);
+        super(0, 0);
         startDate = 0;
         endDate = 0;
-        score =0;
+        score = 0;
         progress = 0;
         episodes = 0;
         animeValues = new HashMap<>();
         animestatus = status.PAUSED;
-        rewatches= 0;
+        rewatches = 0;
 
 
     }
 
     public String getDisplayString() {
-        return getValue("series_title" + (displayEN ? "_english" : "")) + "\n"
-                + getValue("my_score")+ "/10 " +  getValue("my_status") + " re-watch:" +rewatches + "\n"
-                + getValue("my_start_date")+ " to " + getValue("my_finish_date");
+        return getDisplayName() + "\n"
+                + getValue("my_score") + "/100 " + getValue("my_status") + " re-watch:" + rewatches + "\n"
+                + getValue("my_start_date") + " to " + getValue("my_finish_date");
     }
 
     public String getDisplayName() {
-        return getValue("series_title" + (displayEN ? "_english" : ""));
+        return getValue("series_title" + (displayEN ? "_english" : "")) + " [" + format + "]";
     }
-
 
 
     public int getDuration() {
         return duration;
     }
 
+
+    private static boolean has_used_non_point5 = false;
+    private static boolean has_used_Decimal = false;
+    private static double highestRawScore = 0;
+
+    public void setScore(double score) {
+        this.score = score;
+
+        if ((int) score < score) {
+            has_used_Decimal = true;
+            if ((int) score + 0.5 != score) {
+                has_used_non_point5 = true;
+            }
+        }
+        if (score > highestRawScore) {
+            highestRawScore = score;
+        }
+    }
+
     public void setValue(String type, String input) {
         if (input == null) {
             return;
         }
-        switch(type) {
+        switch (type) {
 
-            case "my_status"-> {
+            case "my_status" -> {
                 animestatus = status.valueOf(input);
-                animeValues.put(type,input);
+                animeValues.put(type, input);
             }
-            case "duration"-> {
+            case "duration" -> {
                 duration = Integer.parseInt(input);
             }
             case "series_episodes" -> episodes = Integer.parseInt(input);
             case "my_watched_episodes" -> progress = Integer.parseInt(input);
-            case "my_score" -> score = Integer.parseInt(input);
+            case "my_score" -> {
+                score = Integer.parseInt(input);
+
+            }
             case "repeat" -> rewatches = Integer.parseInt(input);
             case "my_start_date" -> {
-                input = input.replace("null","0");
+                input = input.replace("null", "0");
                 SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
                 Date d = null;
                 try {
@@ -424,10 +600,10 @@ public class AnimeLog extends MenuElement{
                     throw new RuntimeException(e);
                 }
                 startDate = d.getTime();
-                animeValues.put(type,input);
+                animeValues.put(type, input);
             }
             case "my_finish_date" -> {
-                input = input.replace("null","0");
+                input = input.replace("null", "0");
                 SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
                 Date d = null;
                 try {
@@ -436,10 +612,10 @@ public class AnimeLog extends MenuElement{
                     throw new RuntimeException(e);
                 }
                 endDate = d.getTime();
-                animeValues.put(type,input);
+                animeValues.put(type, input);
             }
             case "series_start" -> {
-                input = input.replace("null","0");
+                input = input.replace("null", "0");
                 SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
                 Date d = null;
                 try {
@@ -448,10 +624,10 @@ public class AnimeLog extends MenuElement{
                     throw new RuntimeException(e);
                 }
                 showStartDate = d.getTime();
-                animeValues.put(type,input);
+                animeValues.put(type, input);
             }
             case "series_end" -> {
-                input = input.replace("null","0");
+                input = input.replace("null", "0");
                 SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd");
                 Date d = null;
                 try {
@@ -460,12 +636,14 @@ public class AnimeLog extends MenuElement{
                     throw new RuntimeException(e);
                 }
                 showEndDate = d.getTime();
-                animeValues.put(type,input);
+                animeValues.put(type, input);
             }
+
             case "animeid" -> {
-                id = Integer.parseInt(input);
+                System.out.println("seriously what");
+                // id = Integer.parseInt(input);
             }
-            default -> animeValues.put(type,input);
+            default -> animeValues.put(type, input);
 
         }
     }
@@ -476,32 +654,36 @@ public class AnimeLog extends MenuElement{
 
     @Override
     public double getY() {
-        if (HelloApplication.currentTime-lastPosUpdate <animation_length) {
+        if (HelloApplication.currentTime - lastPosUpdate < animation_length) {
 
-         //   System.out.println(((HelloApplication.currentTime-lastPosUpdate)/1500.0) +  " " +(1-((HelloApplication.currentTime-lastPosUpdate)/1500.0)) );
-            return ((HelloApplication.currentTime-lastPosUpdate)/(animation_length*1.0))*y+(1-((HelloApplication.currentTime-lastPosUpdate)/(animation_length*1.0)))*oldY ;
+            //   System.out.println(((HelloApplication.currentTime-lastPosUpdate)/1500.0) +  " " +(1-((HelloApplication.currentTime-lastPosUpdate)/1500.0)) );
+            return ((HelloApplication.currentTime - lastPosUpdate) / (animation_length * 1.0)) * y + (1 - ((HelloApplication.currentTime - lastPosUpdate) / (animation_length * 1.0))) * oldY;
         } else {
             return this.y;
         }
     }
+
     private static long lastPosUpdate = System.currentTimeMillis();
+
     public void updateOrder(double y) {
 
-        lastPosUpdate=HelloApplication.currentTime;
-        oldY=this.y;
-        this.y=y;
+        lastPosUpdate = HelloApplication.currentTime;
+        oldY = this.y;
+        this.y = y;
     }
+
     public long getEndDate() {
 
 
         if (endDate > 0) {
             return endDate;
         }
-        if (animestatus==status.CURRENT) {
+        if (animestatus == status.CURRENT) {
             return HelloApplication.launchTime;
         }
         return getStartDate();
     }
+
     public long getStartDate() {
         return startDate <= 0 ? Long.MAX_VALUE : startDate;
     }
@@ -511,65 +693,92 @@ public class AnimeLog extends MenuElement{
     }
 
     public long getShowEndDate() {
-        return showEndDate<= 0 ? getShowStartDate() : showEndDate;
+        return showEndDate <= 0 ? getShowStartDate() : showEndDate;
     }
+
     public long getShowStartDate() {
         return showStartDate <= 0 ? Long.MAX_VALUE : showStartDate;
     }
+
     public int getTimeWatching() {
 
-        return (int)Math.ceil(Util.getAnimeDayDifference(startDate,endDate));
+        return (int) Math.ceil(Util.getAnimeDayDifference(startDate, endDate));
     }
 
     public double getWatchPace() {
 
-        int timeWatching = getTimeWatching()+1;
-        if (timeWatching <=0) {
-            timeWatching=Integer.MAX_VALUE;
+        int timeWatching = getTimeWatching() + 1;
+        if (timeWatching <= 0) {
+            timeWatching = Integer.MAX_VALUE;
         }
 
-        return ((progress*1.0)/Math.max(timeWatching,1.0));
+        return ((progress * 1.0) / Math.max(timeWatching, 1.0));
     }
 
     public int getEpisodes() {
         return episodes;
     }
+
     public int getProgress() {
         return progress;
     }
+
+
+    private int displayScore = -2;
+
     public int getScore() {
-        return (int)(score*10);
+
+        if (displayScore == -2) {
+
+            if (has_used_Decimal) {
+                System.out.println(max_score_value);
+                if (has_used_non_point5) {
+                    max_score_value = (int) (highestRawScore * 10);
+                } else {
+                    max_score_value = (int) (highestRawScore * 2);
+                }
+            } else {
+                max_score_value = (int) highestRawScore;
+            }
+
+
+            displayScore = (int) (((score) / max_score_value) * 100.0);
+        }
+        return displayScore;
+
     }
 
     public Color getScoreColor() {
-        if (score==0) {
+        if (score == 0) {
             return Color.GREY;
         }
 
         //if (this.animestatus==status.PAUSED || this.animestatus==status.DROPPED || ) {
 
-     //   }
+        //   }
 
 
-        return getColorFromScore(score);
+        return getColorFromScore(getScore());
 
     }
+
     public int getValueInt(String type) {
-        return switch(type) {
+        return switch (type) {
             case "series_episodes" -> episodes;
             case "my_watched_episodes" -> progress;
             case "my_score" -> getScore();
-            default -> Integer.parseInt(animeValues.getOrDefault(type,"0"));
+            default -> Integer.parseInt(animeValues.getOrDefault(type, "0"));
 
         };
     }
+
     public String getValue(String type) {
-        return switch(type) {
-            case "series_episodes" -> episodes+"";
-            case "my_watched_episodes" -> progress +"";
-            case "my_score" -> score+"";
-            case "color" -> animeValues.getOrDefault(type,"#ffffff");
-            default -> animeValues.getOrDefault(type,"-1");
+        return switch (type) {
+            case "series_episodes" -> episodes + "";
+            case "my_watched_episodes" -> progress + "";
+            case "my_score" -> getScore() + "";
+            case "color" -> animeValues.getOrDefault(type, "#ffffff");
+            default -> animeValues.getOrDefault(type, "-1");
 
         };
     }

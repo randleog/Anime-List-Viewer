@@ -2,6 +2,7 @@ package com.injata.animelist;
 
 public class Util {
     public static double determinedDiff = 17.28;
+    public static final long YEAR = 86400000L;
     public static final long space = (long)(((1000)*86400000L)/determinedDiff);
     public static final long dayDiff = (long)(86400000L/determinedDiff);
 

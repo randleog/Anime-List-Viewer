@@ -21,9 +21,12 @@ import java.awt.Toolkit;
 import java.awt.GraphicsEnvironment;
 import java.awt.GraphicsDevice;
 import java.io.*;
+import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
@@ -35,10 +38,10 @@ public class HelloApplication extends Application {
     public static final int MAX_ACTIVITY_COUNT = 100;
     public static boolean imageChanged = false;
 
-    public static String directory = "";
+    public static String directory = "data" + "/";
 
     public static boolean useFile = false;
-
+    public static String USER_ACTIVITY_FOLDER = "activity/";
     public static String toolTip = "";
 
     public static long currentTime = System.currentTimeMillis();
@@ -82,6 +85,10 @@ public class HelloApplication extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
+
+        if (!(new File(directory).exists())) {
+            new File(directory).mkdir();
+        }
         AnimeLog.loadColors();
 
 
@@ -261,7 +268,9 @@ public class HelloApplication extends Application {
 
         canvas.setOnScroll(scrollEvent -> {
 
-
+            if (scrollEvent.getDeltaY() == 0) {
+                return;
+            }
             currentMenu.scroll(scrollEvent.getDeltaY(), scrollEvent.getX(), scrollEvent.getY());
 
             displayTimeline();
@@ -367,7 +376,8 @@ public class HelloApplication extends Application {
 
         String command = action.split(":")[0];
 
-        String input = action.split(":").length > 1 ? action.split(":")[1] : "";
+        String input = (action.split(":").length > 1 ? action.split(":")[1] : "").toLowerCase();
+
         switch (command) {
             case "back" -> {
                 currentMenu = Menus.getFirstMenu();
@@ -437,9 +447,12 @@ public class HelloApplication extends Application {
                             profile.orderList("start", textPool.getOrDefault("sort_reverse", "1").equals("1"));
                             textPool.put("sort", "start");
                             updateTextPool(true, "Error", "");
+
+
                         }
 
 
+                        startLoadingHistory();
                     }
                 });
 
@@ -461,6 +474,30 @@ public class HelloApplication extends Application {
 
     public static double getCanvasHeight() {
         return CANVAS_HEIGHT;
+    }
+
+
+    static double timeWaiting = 3000;
+
+    public static void startLoadingHistory() {
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int progress = 0;
+                for (Integer[] val : waitingToLoadHistory) {
+                    try {
+                        Thread.sleep((long) timeWaiting);
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
+                    queryAnimeHistory(val[0], val[1], val[2] == 1);
+                    progress++;
+                    System.out.println("loaded the activity history for: " +progress + "/" +waitingToLoadHistory.size() + ". " + (waitingToLoadHistory.size()-progress)*timeWaiting/1000 + " seconds left");
+                }
+
+            }
+        });
+        t.start();
     }
 
 
@@ -509,7 +546,7 @@ public class HelloApplication extends Application {
 //}
 
     public static String queryAnilistAPIManga(String username) {
-        String query = "query  { MediaListCollection(type: MANGA userName: \"" + username + "\") { user {id} lists { name entries { id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { id coverImage {extraLarge large medium color}  title { romaji english } chapters duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
+        String query = "query  { MediaListCollection(type: MANGA userName: \"" + username + "\") { user {id} lists { name entries { id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { id coverImage {extraLarge large medium color} format title { romaji english } chapters duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
         ObjectNode json = new ObjectMapper().createObjectNode();
         json.put("query", query);
 
@@ -565,7 +602,7 @@ public class HelloApplication extends Application {
             }
             responseReader.close();
             if (statusCode == 200) {//&& SAVE_FILES_ENABLED
-                File file = new File(username + "_Mangalist.txt");
+                File file = new File(directory + username + "_Mangalist.txt");
                 FileWriter fileWriter = new FileWriter(file);
                 fileWriter.write(response.toString().replace("{", "\n{"));
                 fileWriter.close();
@@ -589,6 +626,11 @@ public class HelloApplication extends Application {
 
     }
 
+
+    private static long lastActivityQuery = 0;
+
+
+    private static ArrayList<Integer[]> waitingToLoadHistory = new ArrayList<>();
     //query for finding the anime activity history of a specific anime:
     /* Page(page:0,perPage: 100) { activities(userId: 6168637, type: ANIME_LIST, mediaId: 108268) { ... on ListActivity { media { id title { english } } createdAt likeCount progress status type siteUrl}} }}
 
@@ -601,16 +643,55 @@ public class HelloApplication extends Application {
     //#1 I should next save the id per anime to the animelog
     //#2 then i should use delayed saving to slowly collect the info about each anime watch history.
     //#3 i need to add a setting to show anime only per franchise so you have the full list of logs in one line
-    public static String queryAnimeHistory(int userId, int animeId) {
+    public static String queryAnimeHistory(int userId, int animeId, boolean ismanga) {
+
+        boolean shouldUseFile = false;
+        String fileName =directory + userId + "/" + animeId + "_list.txt";
+        if (System.currentTimeMillis() - lastActivityQuery < 1000) {
+            shouldUseFile = new File(fileName).exists();
+            if (!shouldUseFile) {
+                waitingToLoadHistory.add(new Integer[]{userId, animeId, ismanga ? 1 : 0});
+                System.out.println("not loading the file due to time ");
+                return null;
+            }
+
+        } else {
+            shouldUseFile = new File(fileName).exists();
+
+            //todo: come back to this part at some point. you might want to refresh the anime activity on occasion in case you missed an activity.
+            if (new File(fileName).exists()) {
+                //shouldUseFile = new File(userId + "/" + animeId + "_list.txt").lastModified() > System.currentTimeMillis() - 10000000;
+            }
+
+        }
+
+
+        if (shouldUseFile) {
+
+            try {
+                //    FileReader filereader = new FileReader(file);
+                String value = Files.readString(Path.of(userId + "/" + animeId + "_list.txt"), StandardCharsets.UTF_8);
+
+                return value;
+
+            } catch (FileNotFoundException e) {
+                throw new RuntimeException(e);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+
+
+        lastActivityQuery = System.currentTimeMillis();
+        String type = ismanga ? "MANGA_LIST" : "ANIME_LIST";
+
+
         String query = "query  {\n" +
                 "  Page(page: 0, perPage: " + MAX_ACTIVITY_COUNT + " ) {\n" +
-                "    activities(userId: " + userId + ", type: ANIME_LIST, mediaId:  " + animeId + ") {\n" +
+                "    activities(userId: " + userId + ", type: " + type + ", mediaId:  " + animeId + ") {\n" +
                 "      ... on ListActivity {\n" +
-                "        media {\n" +
-                "          id\n" +
-                "          title {\n" +
-                "            english\n" +
-                "          }\n" +
+                "        media { id title { english }" +
                 "        }\n" +
                 "        createdAt\n" +
                 "        likeCount\n" +
@@ -677,11 +758,12 @@ public class HelloApplication extends Application {
                 response.append(inputLine);
             }
             responseReader.close();
+            String filename = directory  + userId + "/";
             if (statusCode == 200) {//&& SAVE_FILES_ENABLED
-                if (!new File(userId + "\\").exists()) {
-                    (new File(userId + "\\")).mkdir();
+                if (!new File(filename).exists()) {
+                    (new File(filename)).mkdir();
                 }
-                File file = new File(userId + "\\" + animeId + "_list.txt");
+                File file = new File(filename + animeId + "_list.txt");
                 FileWriter fileWriter = new FileWriter(file);
                 fileWriter.write(response.toString().replace("{", "\n{"));
                 fileWriter.close();
@@ -707,17 +789,12 @@ public class HelloApplication extends Application {
 
 
     public static String queryAnilistAPI(String username) {
-        String query = "query  { MediaListCollection(type: ANIME userName: \"" + username + "\") { user {id } lists { name entries {  id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { " +
+        String query = "query  { MediaListCollection(type: ANIME userName: \"" + username + "\") { user {id } lists { name entries {  id score repeat progress advancedScores status customLists notes startedAt { day month year } completedAt { day month year} media { format " +
                 "relations {\n" +
                 "         \n" +
-                "            edges {\n" +
-                "              relationType\n" +
-                "              node {\n" +
-
-                "                id title {\n" +
-                "                  english\n" +
-                "                }\n" +
-                "              }\n" +
+                "            edges { " +
+                "              relationType " +
+                "              node { id title { romaji } }\n" +
                 "            }\n" +
                 "          }\n" +
                 "id coverImage {extraLarge large medium color}  title { romaji english } episodes duration startDate {day month year} endDate {day month year} tags { category name } genres meanScore} } } } } ";
@@ -776,7 +853,7 @@ public class HelloApplication extends Application {
             }
             responseReader.close();
             if (statusCode == 200) {//&& SAVE_FILES_ENABLED
-                File file = new File(username + "_list.txt");
+                File file = new File(directory + username + "_list.txt");
                 FileWriter fileWriter = new FileWriter(file);
                 fileWriter.write(response.toString().replace("{", "\n{"));
                 fileWriter.close();
@@ -802,11 +879,75 @@ public class HelloApplication extends Application {
 
 
     // public static ArrayList<AnimeActivity> getAnimeActivityHistory() {
-   //if (file exists()) { read file} else, if the time since the last file generated is larger than 20 seconds, write a new file(QueryAnimeHistory) and output that.
+    //if (file exists()) { read file} else, if the time since the last file generated is larger than 20 seconds, write a new file(QueryAnimeHistory) and output that.
     //this should therefore act as a delayed sequencer, as only one of the "writing to file" should occur at any one time.
 
 //}
 
+
+    public static ArrayList<AnimeActivityLog> getAnimeActivity(AnimeLog log, int userid) {
+
+        String output = queryAnimeHistory(userid, log.id, log.isManga);
+        if (log.animestatus != AnimeLog.status.COMPLETED) {
+            return null;
+        }
+
+        if (output == null) {
+            return null;
+        }
+    //    System.out.println(output);
+        try {
+            JsonNode node = null;
+            try {
+                node = new ObjectMapper().readTree(output);
+            } catch (JsonProcessingException e) {
+                throw new RuntimeException(e);
+            }
+
+
+            // profile.setProfileValue("user_name", username);
+
+            //profile.id = node.get("data").get("MediaListCollection").get("user").get("id").asInt();
+            //  HashMap<String, String> hash = new HashMap<>();
+
+            ArrayList<AnimeActivityLog> activities = new ArrayList<>();
+            int i = 0;
+            while (node.get("data").get("Page").get("activities").get(i) != null) {
+
+                long start = node.get("data").get("Page").get("activities").get(i).get("createdAt").longValue();
+                String activityType = node.get("data").get("Page").get("activities").get(i).get("status").textValue();
+                String progress;
+                if (node.get("data").get("Page").get("activities").get(i).get("progress").isNull())  {
+                    progress = "-1";
+                } else {
+                    progress = node.get("data").get("Page").get("activities").get(i).get("progress").textValue();
+                }
+
+
+                String listType = node.get("data").get("Page").get("activities").get(i).get("type").textValue();
+                int likeCount = node.get("data").get("Page").get("activities").get(i).get("likeCount").intValue();
+                String siteURL = node.get("data").get("Page").get("activities").get(i).get("siteUrl").textValue();
+
+                activities.add(new AnimeActivityLog(log.id,start,activityType,progress,listType,likeCount,siteURL,log.getDisplayName()));
+
+                //AnimeActivityLog(int animeid, long start, String activityType, String progress, String listType, int likeCount, String siteURL, String name) {
+                //"progress":"1","status":"read chapter","type":"MANGA_LIST"
+                //{"media":{"id":181372,"title":
+                i++;
+            }
+            if (i==0) {
+                return null;
+            } else {
+                return activities;
+            }
+
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
+        }
+
+
+      //  return null;
+    }
 
     public static AnimeProfile getAnimeProfileJson(String input, String username, String type) {
         AnimeProfile profile = new AnimeProfile();
@@ -839,16 +980,27 @@ public class HelloApplication extends Application {
                     String status = node.get("data").get("MediaListCollection").get("lists").get(i).get("name").textValue();
 
                     profile.addProfileValue("user_total_" + status, status);
-                    if (!hash.containsKey(animeLogJson.get("id").asText())) {
-                        hash.put(animeLogJson.get("id").asText(), "true");
+                    if (!hash.containsKey(animeLogJson.get("media").get("id").asText())) {
+                        hash.put(animeLogJson.get("media").get("id").asText(), "true");
                         // System.out.println(animeLogJson.get("media").get("title").get("romaji"));
                         AnimeLog log = new AnimeLog();
                         log.id = animeLogJson.get("media").get("id").intValue();
-                        log.score = Double.parseDouble(animeLogJson.get("score").asText());
+
+                        System.out.println(log.id + " is the id of " + animeLogJson.get("media").get("id").intValue());
+                        log.setScore(Double.parseDouble(animeLogJson.get("score").asText()));
+
                         log.setValue("repeat", animeLogJson.get("repeat").asText());
 
+
+                        if (animeLogJson.get("media").has("format")) {
+                            log.format = animeLogJson.get("media").get("format").textValue();
+                        }
+
                         if (type.equals("Manga: ")) {
+                            log.isManga = true;
                             log.setValue("series_episodes", animeLogJson.get("media").get("chapters").intValue() + "");
+
+
                         } else {
                             log.setValue("series_episodes", animeLogJson.get("media").get("episodes").intValue() + "");
                         }
@@ -886,7 +1038,7 @@ public class HelloApplication extends Application {
                         if (animeLogJson.get("media").get("relations") != null) {
                             while (animeLogJson.get("media").get("relations").get("edges").get(x) != null) {
                                 log.relations.add(animeLogJson.get("media").get("relations").get("edges").get(x).get("node").get("id").intValue() + "," + "," + animeLogJson.get("media").get("relations").get("edges").get(x).get("relationType").textValue());
-                                System.out.println(animeLogJson.get("media").get("relations").get("edges").get(x).get("node").get("id").intValue() + "," + animeLogJson.get("media").get("relations").get("edges").get(x).get("relationType").textValue());
+                                //    System.out.println(animeLogJson.get("media").get("relations").get("edges").get(x).get("node").get("id").intValue() + "," + animeLogJson.get("media").get("relations").get("edges").get(x).get("relationType").textValue());
                                 x++;
                             }
                         }
@@ -918,53 +1070,7 @@ public class HelloApplication extends Application {
     }
 
 
-    public static AnimeProfile getAnimeProfileXML(String input) throws IOException {
 
-        AnimeProfile profile = new AnimeProfile();
-
-        String[] output = input.split("<anime>");
-        profile.setProfileValueXML("user_name", output[0]);
-        profile.setProfileValueXML("user_total_watching", output[0]);
-        profile.setProfileValueXML("user_total_completed", output[0]);
-        profile.setProfileValueXML("user_total_onhold", output[0]);
-        profile.setProfileValueXML("user_total_dropped", output[0]);
-        profile.setProfileValueXML("user_total_plantowatch", output[0]);
-
-        for (int i = 1; i < output.length; i++) {
-
-
-            AnimeLog anime = new AnimeLog();
-            anime.setValue("series_title", getAnimeTitle(output[i]));
-            anime.setValue("series_episodes", getSingluarValue(output[i], "series_episodes"));
-            anime.setValue("my_watched_episodes", getSingluarValue(output[i], "my_watched_episodes"));
-            anime.setValue("my_score", getSingluarValue(output[i], "my_score"));
-            anime.setValue("my_start_date", getSingluarValue(output[i], "my_start_date"));
-            anime.setValue("my_finish_date", getSingluarValue(output[i], "my_finish_date"));
-            anime.setValue("my_status", getSingluarValue(output[i], "my_status"));
-            anime.setValue("my_comments", getSingluarValue(output[i], "my_comments"));
-            anime.setValue("my_times_watched", getSingluarValue(output[i], "my_times_watched"));
-
-            profile.addAnime(anime);
-
-
-        }
-        return profile;
-    }
-
-
-    public static String[] listStep1(String input) throws IOException {
-
-        String[] output = input.split("<anime>");
-
-        for (int i = 0; i < output.length; i++) {
-            output[i] = output[i].split("</anime>")[0];
-
-
-        }
-
-
-        return output;
-    }
 
     public static String getSingluarValue(String input, String key) {
         String[] output = input.replace("</", "<").split("<" + key + ">");
@@ -978,18 +1084,6 @@ public class HelloApplication extends Application {
     }
 
 
-    public static String stringAnilistFile(String input) throws IOException {
-        return new String(Files.readAllBytes(Paths.get(input)));
-    }
-
-
-    public static String stringFromArray(String[] input) {
-        String output = "";
-        for (int i = 0; i < input.length; i++) {
-            output = output + " " + i + " " + input[i] + "\n";
-        }
-        return output;
-    }
 
     public static String getAnimeTitle(String input) {
         return unWrapCDATA(getSingluarValue(input, "series_title"));
@@ -999,44 +1093,7 @@ public class HelloApplication extends Application {
         return input.substring(9).split("]]>")[0];
     }
 
-    public static String[] outputAnilistFile(String input) {
-        File config = new File(input);
-        if (!config.exists()) {
-            try {
-                config.createNewFile();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
 
-        }
-
-
-        BufferedReader reader = null;
-
-
-        try {
-            reader = new BufferedReader(new FileReader(config));
-            String line = null;
-            while ((line = reader.readLine()) != null) {
-
-            }
-
-
-        } catch (IOException ignored) {
-
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (Exception ignored) {
-
-                }
-            }
-        }
-
-
-        return new String[]{""};
-    }
 
     public static void main(String[] args) {
         if (args.length > 0) {
